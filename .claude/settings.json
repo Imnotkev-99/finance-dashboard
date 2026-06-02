@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/recommend-frontend-skills.sh\"",
+            "statusMessage": "Revisando si es un proyecto front-end…"
+          }
+        ]
+      }
+    ]
+  }
+}

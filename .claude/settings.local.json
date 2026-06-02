@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"remotion studio\")",
+      "Bash(pkill -f \"remotion-studio\")",
+      "Bash(rm -rf ~/.claude/skills/remotion-best-practices)",
+      "Read(//Users/kevinsantos/.claude/skills/**)"
+    ]
+  }
+}

@@ -1,0 +1,405 @@
+{
+  "name": "🇵🇪 Perú Weekly Newsletter",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🇵🇪 Perú Weekly Newsletter\n\n**¿Qué hace este workflow?**\nReúne la información más importante de la última semana sobre el Perú (política, economía, sociedad, deportes y cultura), la procesa con Ollama (LLM local) y te envía un newsletter HTML profesional por Gmail.\n\n**Disparadores:**\n- ▶️ **Manual** → ejecuta en cualquier momento para probar\n- ⏰ **Automático** → todos los lunes a las 8:00 AM\n\n**Stack:** Ollama (local) + Wikipedia + Gmail n8n",
+        "height": 220,
+        "width": 420,
+        "color": 4
+      },
+      "id": "4c49768d-6210-4a9d-9b18-1c4f2f6e9a93",
+      "name": "📋 ¿Qué hace?",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⚙️ Configuración — 2 pasos\n\n**1. Ollama (LLM local)**\n→ Instala Ollama: ollama.com\n→ Descarga un modelo con tools:\n   `ollama pull qwen2.5:14b`\n   (o llama3.1:8b si tu equipo es más limitado)\n→ Settings → Credentials → Add → Ollama\n→ Base URL: http://localhost:11434\n   (si n8n corre en Docker usa http://host.docker.internal:11434)\n\n**2. Gmail OAuth2**\n→ Settings → Credentials → Add → Gmail OAuth2\n→ Conecta tu cuenta de Google\n\n🔍 **Wikipedia** NO necesita credenciales.\n\n⚠️ El modelo Ollama DEBE soportar tools/function-calling\n(llama3.1, qwen2.5, mistral-nemo). Modelos sin tools no\nfuncionan con el AI Agent.",
+        "height": 320,
+        "width": 420,
+        "color": 5
+      },
+      "id": "e3f623de-ce23-43d1-804c-70284cf23e5f",
+      "name": "⚙️ Setup Instrucciones",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ✏️ Personaliza aquí\n\nEdita el nodo **⚙️ Config** para cambiar:\n\n| Campo | Descripción |\n|-------|-------------|\n| `recipientEmail` | Tu email destino |\n| `recipientName` | Tu nombre |\n| `topics` | Temas de interés |\n\n**Para cambiar horario:**\nEdita ⏰ *Lunes 8:00 AM*\n\n**Para cambiar modelo:**\nEdita 🧠 *Ollama (qwen2.5:14b)* → modelo\n\n**Para cambiar búsquedas:**\nEdita el prompt en 🤖 *AI Agent*",
+        "height": 260,
+        "width": 340,
+        "color": 6
+      },
+      "id": "df6f7119-b5e5-4ed6-aec7-fe35959059be",
+      "name": "✏️ Personalización",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        688,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔗 Flujo del workflow\n\n```\n▶️ Manual  ──┐\n             ├──→ ⚙️ Config ──→ 🤖 Agent ──→ 🧹 Limpiar ──→ 📧 Gmail\n⏰ Schedule ──┘\n                      ↑\n               🧠 Ollama\n               🔍 Wikipedia\n```\n\n**El agente consulta 7 temas en Wikipedia** y genera el HTML completo del newsletter de forma autónoma.",
+        "height": 200,
+        "width": 560,
+        "color": 3
+      },
+      "id": "b14c6023-d47b-4b0a-a363-8ac9acd09178",
+      "name": "🔗 Diagrama flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "86364529-7c3a-4a20-a892-20d115af7026",
+      "name": "▶️ Ejecutar Ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "71d66ff7-5aa9-4224-b00d-095b142fe94d",
+      "name": "⏰ Lunes 8:00 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-01",
+              "name": "recipientEmail",
+              "value": "kevsanz99@gmail.com, kevinjsl99@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "cfg-02",
+              "name": "recipientName",
+              "value": "Kevin",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03",
+              "name": "newsletterTitle",
+              "value": "Perú Semanal",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04",
+              "name": "topics",
+              "value": "política peruana, gobierno y Congreso, economía del Perú, sociedad y actualidad nacional, seguridad ciudadana, deportes (fútbol peruano), cultura y entretenimiento, Lima y regiones",
+              "type": "string"
+            },
+            {
+              "id": "cfg-05",
+              "name": "today",
+              "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-06",
+              "name": "todayFormatted",
+              "value": "={{ $now.toFormat(\"d 'de' MMMM 'de' yyyy\") }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-07",
+              "name": "weekAgo",
+              "value": "={{ $now.minus({days: 7}).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-08",
+              "name": "weekAgoFormatted",
+              "value": "={{ $now.minus({days: 7}).toFormat(\"d 'de' MMMM\") }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-09",
+              "name": "currentYear",
+              "value": "={{ $now.toFormat('yyyy') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d779568-fd84-4985-a999-c0a06ac0f0cc",
+      "name": "⚙️ Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Hoy es {{ $('⚙️ Config').item.json.todayFormatted }}.\nCrea un newsletter sobre el PERÚ para {{ $('⚙️ Config').item.json.recipientName }} cubriendo la información más importante del {{ $('⚙️ Config').item.json.weekAgoFormatted }} al {{ $('⚙️ Config').item.json.todayFormatted }}.\nTemas de interés: {{ $('⚙️ Config').item.json.topics }}\n\n━━━ FASE 1: INVESTIGACIÓN EN WIKIPEDIA ━━━\nUsa la herramienta de Wikipedia para consultar EXACTAMENTE estos temas y reunir contexto de fondo sobre el Perú:\n1. \"Peru\"\n2. \"Politics of Peru\" y \"Government of Peru\"\n3. \"President of Peru\" (el presidente actual)\n4. \"Economy of Peru\"\n5. \"Peru national football team\" y \"Peruvian Primera División\"\n6. \"Culture of Peru\"\n7. \"History of Peru\" (sección de acontecimientos recientes)\n\nIMPORTANTE: Wikipedia ofrece contexto enciclopédico, no noticias de última hora. Para cada tema extrae los desarrollos, hitos y hechos MÁS RECIENTES que encuentres en los artículos. Combina ese contexto de Wikipedia con tu conocimiento general para construir las noticias y temas más relevantes del Perú en el periodo cubierto. Cita Wikipedia como fuente cuando uses datos de allí.\n\n━━━ FASE 2: GENERA EL NEWSLETTER HTML ━━━\nCon la información recolectada, genera un archivo HTML COMPLETO con este diseño exacto.\n\nPALETA (todo CSS inline, compatible con email):\n- Body bg: #0a0a1a\n- Container: max-width 680px, margin 0 auto, background #0f0f1e\n- Header: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%), padding 40px 30px\n- Card bg: #1a1a2e, border-radius 10px, padding 20px\n- Sección oscura: #12122a\n- ALTO impacto: border-left 4px solid #ff4757, badge bg #ff4757\n- MEDIO impacto: border-left 4px solid #ffa502, badge bg #ffa502\n- BAJO impacto: border-left 4px solid #2ed573, badge bg #2ed573\n- Texto principal: #c8c8e8, secundario: #a0a0c0, labels: #667888\n- Acentos: #667eea (sección headers), #a78bfa (highlights)\n- Separadores: 1px solid rgba(103, 126, 234, 0.2)\n\nESTRUCTURA OBLIGATORIA:\n\n[1] HEADER: fondo degradado, texto centrado\n  - Etiqueta pequeña: \"RESUMEN SEMANAL DEL PERÚ\" en mayúsculas, color rgba(255,255,255,0.7), letter-spacing 4px\n  - Título: \"🇵🇪 PERÚ SEMANAL\" font-size 34px, font-weight 900, color white\n  - Subtítulo: fecha | N noticias | rango semana — color rgba(255,255,255,0.8)\n\n[2] RESUMEN EJECUTIVO: fondo #1a1a2e, padding 28px 30px\n  - Label: \"📊 RESUMEN EJECUTIVO\" en #a78bfa, font-size 12px, letter-spacing 3px\n  - Párrafo: 4-5 oraciones con lo más importante de la semana, color #c8c8e8, line-height 1.8\n\n[3] MÉTRICAS: usar TABLE para compatibilidad email, fondo #12122a, padding 20px 30px\n  - 4 celdas: Total noticias (número grande en #667eea) | Tema más relevante (en #a78bfa) | Tendencia principal (en #f64f59) | Sentimiento positivo % (en #2ed573)\n  - Separadores verticales entre celdas\n\n[4] NOTICIAS POR CATEGORÍA — para cada categoría:\n  Header de sección: background #0f0f1e, padding 25px 30px 5px\n    - H2 con emoji, color #667eea, font-size 18px, font-weight 700, border-bottom 2px solid rgba(103,126,234,0.3)\n  \n  Cards de noticias: background #0f0f1e, padding 0 30px 15px\n    - Div card: background #1a1a2e, border-radius 10px, padding 20px, margin-bottom 15px\n    - Border-left según impacto\n    - Fila superior: título en #e8e8f8 (font-size 16px, font-weight 700) + badge de impacto a la derecha\n    - Badge: color white, font-size 10px, padding 4px 10px, border-radius 20px, font-weight 700\n    - Fuente + fecha: #667eea, font-size 11px, text-transform uppercase, letter-spacing 1px\n    - Resumen: #a0a0c0, font-size 14px, line-height 1.7\n    - Caja \"por qué importa\": background #12122a, border-radius 6px, padding 12px, border-left 3px solid #a78bfa\n      - Label \"💡 Por qué importa:\" en #a78bfa, font-weight 700, font-size 12px\n      - Texto en #888899, font-size 12px\n\n  Categorías a incluir (con 2-4 noticias cada una):\n  🏛️ Política & Gobierno\n  💰 Economía & Negocios\n  👥 Sociedad & Actualidad\n  ⚽ Deportes\n  🎭 Cultura & Entretenimiento\n\n[5] FOOTER: background #12122a, padding 30px, text-align center, border-radius 0 0 16px 16px\n  - Logo: \"🇵🇪 Perú Semanal\" en #667eea, font-size 20px, font-weight 800\n  - Texto: \"Generado el [fecha] · Powered by Ollama + Wikipedia + n8n\"\n  - Color gris oscuro #666\n\nREGLAS CRÍTICAS:\n- CSS 100% inline (sin etiqueta <style>, sin clases)\n- Usa <table> para layouts de múltiples columnas (compatibilidad email)\n- Respuesta: SOLO el HTML completo, comenzando con <!DOCTYPE html>\n- NO incluyas backticks, markdown ni explicaciones antes/después del HTML",
+        "options": {
+          "systemMessage": "Eres un experto periodista especializado en la actualidad del Perú (política, economía, sociedad, deportes y cultura). Tu misión es investigar exhaustivamente con las herramientas de búsqueda disponibles y luego crear newsletters HTML profesionales, visualmente impresionantes y completamente autónomos.\n\nReglas fundamentales:\n1. SIEMPRE realiza TODAS las búsquedas indicadas antes de redactar el newsletter — no te saltes ninguna\n2. Prioriza noticias concretas del Perú con fuentes reales y fechas específicas de las últimas 2 semanas\n3. El output final debe ser ÚNICAMENTE el código HTML, sin texto adicional, sin markdown\n4. Usa solo CSS inline para máxima compatibilidad con clientes de email\n5. Para layouts de múltiples columnas usa tablas HTML, no flexbox (mejor compatibilidad email)\n6. Asigna correctamente el nivel de impacto: ALTO para hechos de gran relevancia nacional, MEDIO para noticias importantes de un sector, BAJO para noticias de interés general"
+        }
+      },
+      "id": "73e4b0bf-5cc1-4602-aeec-eea72d5ee437",
+      "name": "🤖 AI Newsletter Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        912,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "model": "nemotron-3-super",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "e91d9ddc-1386-465c-b34e-e630f24fe253",
+      "name": "🧠 Ollama (qwen2.5:14b)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        752,
+        848
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "TYDneryIMpWCiXyz",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Limpia el output del agente IA\n// Elimina markdown code fences si GPT los incluye\nconst output = $input.item.json.output || '';\nlet html = output.trim();\n\n// Quitar bloques markdown ```html ... ```\nif (html.includes('```')) {\n  html = html\n    .replace(/^```html\\s*/i, '')\n    .replace(/^```\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n}\n\n// Si el HTML no empieza con DOCTYPE, buscar desde donde empieza\nif (!html.startsWith('<!DOCTYPE') && !html.startsWith('<!doctype')) {\n  const idx = html.search(/<!DOCTYPE/i);\n  if (idx > 0) {\n    html = html.substring(idx).trim();\n  }\n}\n\nreturn [{ json: { html: html } }];"
+      },
+      "id": "18c5145e-9f1e-46e6-b4d6-67dfeb039f86",
+      "name": "🧹 Limpiar HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "=kevinjsl99@gmail.com, elvisolortegui2015@gmail.com",
+        "subject": "=🇵🇪 Perú Semanal | {{ $('⚙️ Config').item.json.todayFormatted }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a50a55e2-6326-4a34-a74c-cad29d5cf740",
+      "name": "📧 Enviar por Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1408,
+        560
+      ],
+      "webhookId": "fcdd5c78-aada-4c6a-9358-da16ab205dae",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Mj0fcLHhVX0OrBwx",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Busca artículos en Wikipedia sobre un tema específico. Devuelve los títulos y snippets de los artículos más relevantes.",
+        "url": "https://en.wikipedia.org/w/api.php",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "query"
+            },
+            {
+              "name": "list",
+              "value": "search"
+            },
+            {
+              "name": "srsearch",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters2_Value', ``, 'string') }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "srlimit",
+              "value": "5"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-ai-newsletter/1.0 (kevsanz99@gmail.com)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        848
+      ],
+      "id": "53e652a8-a46f-48b7-a7d8-8e39811a22e4",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "▶️ Ejecutar Ahora": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Lunes 8:00 AM": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Config": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Newsletter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI Newsletter Agent": {
+      "main": [
+        [
+          {
+            "node": "🧹 Limpiar HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧹 Limpiar HTML": {
+      "main": [
+        [
+          {
+            "node": "📧 Enviar por Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Ollama (qwen2.5:14b)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Newsletter Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "🤖 AI Newsletter Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "835c68db-5a35-43b3-820a-38f20c7cbc2e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b4aa6b6ef8384a7c34014a458461fb03b5ef9043073914f4433c3dfa91983d0"
+  },
+  "id": "7mlJr0FDeugBxxHE",
+  "tags": [
+    {
+      "updatedAt": "2026-05-31T05:36:53.223Z",
+      "createdAt": "2026-05-31T05:36:53.223Z",
+      "id": "GRvHMd2ITE2pWA7Z",
+      "name": "newsletter"
+    },
+    {
+      "updatedAt": "2026-05-31T05:36:53.197Z",
+      "createdAt": "2026-05-31T05:36:53.197Z",
+      "id": "GSlhgYuOgGFqBURN",
+      "name": "AI"
+    }
+  ]
+}
