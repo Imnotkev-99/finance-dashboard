@@ -14,6 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let expenses = [];
   let expenseChartInstance = null;
 
+  // Catálogo de monedas soportadas
+  const CURRENCIES = {
+    USD: { label: 'Dólares', symbol: '$' },
+    PEN: { label: 'Soles', symbol: 'S/' }
+  };
+
   // Elementos Auth
   const authScreen = document.getElementById('auth-screen');
   const mainDashboard = document.getElementById('main-dashboard');
@@ -132,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 📡 Obtener datos de Supabase
   async function fetchExpenses() {
-    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Cargando base de datos cloud... ⚡</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando base de datos cloud... ⚡</td></tr>';
 
     const { data, error } = await supabase
       .from('expenses')
@@ -142,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (error) {
       console.error('Error fetching data:', error);
-      tableBody.innerHTML = '<tr><td colspan="5" style="color:var(--danger); text-align:center;">Error de conexión. Revisa tus claves.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="color:var(--danger); text-align:center;">Error de conexión. Revisa tus claves.</td></tr>';
       return;
     }
 
@@ -156,11 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const concept = document.getElementById('concept').value;
     const amount = parseFloat(document.getElementById('amount').value);
+    const currency = document.getElementById('currency').value;
     const date = document.getElementById('date').value;
     const time = document.getElementById('time').value;
     const file = voucherInput.files[0];
 
-    if (!file) return alert('Por favor selecciona una imagen');
+    // El voucher es OPCIONAL: si no hay archivo, se guarda sin imagen.
 
     // Estado de carga (UX)
     submitBtn.textContent = 'Procesando en la Nube... ⚡';
@@ -168,33 +175,41 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.style.opacity = '0.7';
 
     try {
-      // 1. Crear nombre único y subir imagen a Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      let imageUrl = null;
 
-      const { error: uploadError } = await supabase.storage
-        .from('vouchers')
-        .upload(filePath, file);
+      // 1. Subir imagen a Supabase Storage SOLO si se adjuntó un archivo
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `public/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('vouchers')
+          .upload(filePath, file);
 
-      // 2. Obtener URL pública de la imagen
-      const { data: urlData } = supabase.storage
-        .from('vouchers')
-        .getPublicUrl(filePath);
+        if (uploadError) throw uploadError;
 
-      const imageUrl = urlData.publicUrl;
+        // 2. Obtener URL pública de la imagen
+        const { data: urlData } = supabase.storage
+          .from('vouchers')
+          .getPublicUrl(filePath);
+
+        imageUrl = urlData.publicUrl;
+      }
 
       // 3. Guardar registro en la base de datos relacional
+      //    user_id explícito = usuario de la sesión, para cumplir la
+      //    política RLS (auth.uid() = user_id) sin depender del default.
       const { data: newExpense, error: dbError } = await supabase
         .from('expenses')
         .insert([{
           concept,
           amount,
+          currency,
           date,
           time,
-          image_url: imageUrl
+          image_url: imageUrl,
+          user_id: currentUser.id
         }])
         .select();
 
@@ -272,18 +287,22 @@ document.addEventListener('DOMContentLoaded', () => {
     tableBody.innerHTML = '';
 
     if (expenses.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay gastos registrados aún.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No hay gastos registrados aún.</td></tr>';
       return;
     }
 
     expenses.forEach(exp => {
+      const cur = CURRENCIES[exp.currency] || CURRENCIES.USD;
       const tr = document.createElement('tr');
       tr.innerHTML = `
                 <td>${exp.date} <br><small style="color: var(--text-muted)">${exp.time}</small></td>
                 <td>${exp.concept}</td>
-                <td style="color: var(--accent); font-weight: 600;">$${parseFloat(exp.amount).toFixed(2)}</td>
+                <td style="color: var(--accent); font-weight: 600;">${cur.symbol}${parseFloat(exp.amount).toFixed(2)}</td>
+                <td><span class="currency-tag">${cur.label}</span></td>
                 <td>
-                    <button class="view-img-btn" data-img="${exp.image_url}">Ver Voucher</button>
+                    ${exp.image_url
+          ? `<button class="view-img-btn" data-img="${exp.image_url}">Ver Voucher</button>`
+          : `<span class="no-voucher">Sin voucher</span>`}
                 </td>
                 <td>
                     <button class="delete-btn" data-id="${exp.id}">X</button>
@@ -299,18 +318,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().split('T')[0];
     const currentMonth = today.slice(0, 7);
 
-    let daily = 0, weekly = 0, monthly = 0;
+    // Acumular por moneda para no mezclar dólares y soles
+    const empty = () => ({ USD: 0, PEN: 0 });
+    const daily = empty(), weekly = empty(), monthly = empty();
 
     expenses.forEach(exp => {
       const amt = parseFloat(exp.amount);
-      if (exp.date === today) daily += amt;
-      if (exp.date >= startOfWeek && exp.date <= today) weekly += amt;
-      if (exp.date.startsWith(currentMonth)) monthly += amt;
+      const code = CURRENCIES[exp.currency] ? exp.currency : 'USD';
+      if (exp.date === today) daily[code] += amt;
+      if (exp.date >= startOfWeek && exp.date <= today) weekly[code] += amt;
+      if (exp.date.startsWith(currentMonth)) monthly[code] += amt;
     });
 
-    document.getElementById('daily-total').innerText = `$${daily.toFixed(2)}`;
-    document.getElementById('weekly-total').innerText = `$${weekly.toFixed(2)}`;
-    document.getElementById('monthly-total').innerText = `$${monthly.toFixed(2)}`;
+    document.getElementById('daily-total').innerText = formatTotals(daily);
+    document.getElementById('weekly-total').innerText = formatTotals(weekly);
+    document.getElementById('monthly-total').innerText = formatTotals(monthly);
+  }
+
+  // Convierte { USD, PEN } en texto, mostrando sólo las monedas con monto
+  function formatTotals(totals) {
+    const parts = Object.keys(totals)
+      .filter(code => totals[code] > 0)
+      .map(code => `${CURRENCIES[code].symbol}${totals[code].toFixed(2)}`);
+    return parts.length ? parts.join('  ·  ') : '$0.00';
   }
 
   function renderChart() {
