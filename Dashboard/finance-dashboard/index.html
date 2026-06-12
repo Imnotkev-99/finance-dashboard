@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APEX · Finance Dashboard</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-container">
+    <div class="auth-box glass">
+      <div class="logo" style="text-align: center; margin-bottom: 20px;">
+        <h2>APEX<span>FINANCE</span></h2>
+      </div>
+      <h3 id="auth-title">Iniciar Sesión</h3>
+      <form id="auth-form">
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" id="auth-email" required>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="auth-password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="auth-submit-btn">Entrar</button>
+      </form>
+      <p class="auth-switch">¿No tienes cuenta? <span id="toggle-auth">Regístrate aquí</span></p>
+    </div>
+  </div>
+
+  <div class="dashboard-container hidden" id="main-dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <h2>Apex<span>Finance</span></h2>
+      </div>
+      <nav>
+        <ul>
+          <li class="active">
+            <a href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="9" />
+                <rect x="14" y="3" width="7" height="5" />
+                <rect x="14" y="12" width="7" height="9" />
+                <rect x="3" y="16" width="7" height="5" />
+              </svg>
+              Panel Principal
+            </a>
+          </li>
+          <li>
+            <a href="#upload-section">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Subir Voucher
+            </a>
+          </li>
+          <li>
+            <a href="#history-section">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M3 3v18h18" />
+                <path d="M7 14l4-4 3 3 5-6" />
+              </svg>
+              Historial
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="avatar">A</div>
+        <div class="sidebar-user">
+          <span class="sidebar-user__name">Admin</span>
+          <span class="sidebar-user__role">Administrador</span>
+        </div>
+        <button id="logout-btn" class="logout-btn" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header>
+        <div>
+          <h1>Resumen de Gastos</h1>
+          <p class="header-subtitle">Control de vouchers y gastos operativos</p>
+        </div>
+        <div class="user-profile">
+          <span id="user-email-display">Admin</span>
+          <div class="avatar avatar--sm">A</div>
+        </div>
+      </header>
+
+      <!-- KPI Cards -->
+      <section class="kpi-cards">
+        <div class="card">
+          <h3>Gasto Diario</h3>
+          <p id="daily-total">$0.00</p>
+        </div>
+        <div class="card">
+          <h3>Gasto Semanal</h3>
+          <p id="weekly-total">$0.00</p>
+        </div>
+        <div class="card">
+          <h3>Gasto Mensual</h3>
+          <p id="monthly-total">$0.00</p>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <!-- Upload Form -->
+        <section id="upload-section" class="form-section card">
+          <h2>Registrar Nuevo Gasto</h2>
+          <form id="expense-form">
+            <div class="form-group">
+              <label for="concept">Concepto del Gasto</label>
+              <input type="text" id="concept" placeholder="Ej. Almuerzo de negocios" required>
+            </div>
+            <div class="form-group-row">
+              <div class="form-group">
+                <label for="amount">Monto</label>
+                <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label for="currency">Moneda</label>
+                <select id="currency" required>
+                  <option value="USD">Dólares ($)</option>
+                  <option value="PEN">Soles (S/)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group-row">
+              <div class="form-group">
+                <label for="date">Fecha</label>
+                <input type="date" id="date" required>
+              </div>
+              <div class="form-group">
+                <label for="time">Hora</label>
+                <input type="time" id="time" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="voucher">Subir Imagen del Voucher <span class="optional-tag">(opcional)</span></label>
+              <div class="file-upload-wrapper">
+                <input type="file" id="voucher" accept="image/*">
+                <span id="file-name">Ningún archivo seleccionado</span>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">Guardar Registro</button>
+          </form>
+        </section>
+
+        <!-- Chart Section -->
+        <section class="chart-section card">
+          <h2>Análisis Mensual</h2>
+          <canvas id="expenseChart"></canvas>
+        </section>
+      </div>
+
+      <!-- History Table -->
+      <section id="history-section" class="history-section card">
+        <h2>Historial de Transacciones</h2>
+        <div class="table-container">
+          <table id="transactions-table">
+            <thead>
+              <tr>
+                <th>Fecha & Hora</th>
+                <th>Concepto</th>
+                <th>Monto</th>
+                <th>Moneda</th>
+                <th>Voucher</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <!-- Datos inyectados por JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for Image Preview -->
+  <div id="image-modal" class="modal hidden">
+    <span class="close-modal">&times;</span>
+    <img class="modal-content" id="modal-image">
+  </div>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
