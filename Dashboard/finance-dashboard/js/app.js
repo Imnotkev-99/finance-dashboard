@@ -291,9 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    expenses.forEach(exp => {
+    expenses.forEach((exp, i) => {
       const cur = CURRENCIES[exp.currency] || CURRENCIES.USD;
       const tr = document.createElement('tr');
+      tr.className = 'row-anim';
+      tr.style.animationDelay = `${Math.min(i * 0.04, 0.4)}s`;
       tr.innerHTML = `
                 <td>${exp.date} <br><small style="color: var(--text-muted)">${exp.time}</small></td>
                 <td>${exp.concept}</td>
@@ -330,9 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (exp.date.startsWith(currentMonth)) monthly[code] += amt;
     });
 
-    document.getElementById('daily-total').innerText = formatTotals(daily);
-    document.getElementById('weekly-total').innerText = formatTotals(weekly);
-    document.getElementById('monthly-total').innerText = formatTotals(monthly);
+    animateTotals('daily-total', daily);
+    animateTotals('weekly-total', weekly);
+    animateTotals('monthly-total', monthly);
   }
 
   // Convierte { USD, PEN } en texto, mostrando sólo las monedas con monto
@@ -341,6 +343,29 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(code => totals[code] > 0)
       .map(code => `${CURRENCIES[code].symbol}${totals[code].toFixed(2)}`);
     return parts.length ? parts.join('  ·  ') : '$0.00';
+  }
+
+  // Anima de 0 al valor (count-up), respetando multi-moneda y reduced-motion
+  function animateTotals(elId, totals) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { el.innerText = formatTotals(totals); return; }
+
+    const duration = 900;
+    const start = performance.now();
+    const ease = t => 1 - Math.pow(1 - t, 3); // easeOutCubic
+
+    function frame(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const e = ease(p);
+      const interp = {};
+      Object.keys(totals).forEach(code => { interp[code] = totals[code] * e; });
+      el.innerText = formatTotals(interp);
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
 
   function renderChart() {
@@ -360,28 +385,60 @@ document.addEventListener('DOMContentLoaded', () => {
       expenseChartInstance.destroy();
     }
 
+    // Relleno en gradiente esmeralda
+    const fill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
+    fill.addColorStop(0, 'rgba(16, 185, 129, 0.30)');
+    fill.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     expenseChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [{
-          label: 'Gasto Diario ($)',
+          label: 'Gasto Diario',
           data: dataPoints,
-          borderColor: '#00ffcc',
-          backgroundColor: 'rgba(0, 255, 204, 0.1)',
-          borderWidth: 2,
+          borderColor: '#10b981',
+          backgroundColor: fill,
+          borderWidth: 2.5,
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: '#00ffcc',
-          pointRadius: 4
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#059669',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointHoverBorderWidth: 3
         }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: '#f8fafc' } } },
+        maintainAspectRatio: true,
+        animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#14181f',
+            titleColor: '#ffffff',
+            bodyColor: '#d7dce2',
+            padding: 12,
+            cornerRadius: 10,
+            displayColors: false,
+            borderColor: 'rgba(16,185,129,0.4)',
+            borderWidth: 1
+          }
+        },
         scales: {
-          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-          x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+          y: {
+            grid: { color: 'rgba(16, 24, 40, 0.06)', drawBorder: false },
+            ticks: { color: '#5f6b7a', font: { size: 12 } }
+          },
+          x: {
+            grid: { display: false, drawBorder: false },
+            ticks: { color: '#5f6b7a', font: { size: 12 } }
+          }
         }
       }
     });
