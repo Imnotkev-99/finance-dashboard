@@ -680,6 +680,12 @@ td {
   .sidebar nav ul {
     flex-direction: row;
     margin-left: 24px;
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .sidebar nav ul li a {
+    white-space: nowrap;
   }
 
   .sidebar nav ul li.active a::before {
@@ -700,6 +706,120 @@ td {
 
   .main-content {
     padding: 24px 20px 40px;
+  }
+}
+
+/* Teléfonos: barra superior compacta (solo íconos) y todo en una columna */
+@media (max-width: 600px) {
+  /* Sidebar como barra superior compacta */
+  .sidebar {
+    padding: 10px 14px;
+    gap: 4px;
+  }
+
+  .logo h2 {
+    font-size: 17px;
+  }
+
+  .sidebar nav ul {
+    margin-left: 12px;
+    gap: 2px;
+  }
+
+  /* Oculta el texto de la nav: quedan solo los íconos */
+  .sidebar nav ul li a {
+    padding: 9px;
+    font-size: 0;
+    gap: 0;
+  }
+
+  .sidebar nav ul li a svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Oculta nombre/rol del usuario; quedan avatar + logout */
+  .sidebar-user {
+    display: none;
+  }
+
+  /* Header apilado */
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .user-profile {
+    font-size: 13px;
+  }
+
+  /* Espaciados y tipografía más ajustados */
+  .main-content {
+    padding: 18px 16px 36px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .kpi-cards {
+    gap: 14px;
+  }
+
+  .kpi__body p {
+    font-size: 24px;
+  }
+
+  /* Campos del formulario apilados (más fáciles de tocar) */
+  .form-group-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Subir voucher: input + nombre de archivo apilados (evita desborde horizontal) */
+  .file-upload-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  /* Tabla más compacta; conserva el scroll horizontal de .table-container */
+  th,
+  td {
+    padding: 11px 12px;
+  }
+
+  /* Login/registro */
+  .auth-container {
+    padding: 16px;
+  }
+
+  .auth-box {
+    width: 100%;
+    max-width: 360px;
+    padding: 26px 22px;
+  }
+
+  .auth-box h3 {
+    font-size: 18px;
+  }
+
+  /* Modal de imagen */
+  .modal-content {
+    max-width: 92%;
+    max-height: 88%;
+  }
+
+  .close-modal {
+    top: 14px;
+    right: 18px;
+    font-size: 32px;
   }
 }
 
