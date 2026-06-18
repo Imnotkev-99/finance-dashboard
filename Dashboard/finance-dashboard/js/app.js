@@ -286,23 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.textContent = '...';
         e.target.disabled = true;
 
-        // Buscar el gasto localmente para obtener su image_url
-        const expToDelete = expenses.find(exp => String(exp.id) === id);
-
-        // Si el gasto tiene imagen asociada en Storage, eliminarla
-        if (expToDelete && expToDelete.image_url) {
-          try {
-            // Extrayendo el path de la URL del storage
-            const urlParts = expToDelete.image_url.split('/storage/v1/object/public/vouchers/');
-            if (urlParts.length > 1) {
-              const filePath = urlParts[1];
-              await supabase.storage.from('vouchers').remove([filePath]);
-            }
-          } catch (storageErr) {
-            console.error('Error al borrar la imagen de storage:', storageErr);
-          }
-        }
-
         const { error } = await supabase
           .from('expenses')
           .delete()
@@ -313,6 +296,23 @@ document.addEventListener('DOMContentLoaded', () => {
           e.target.textContent = 'X';
           e.target.disabled = false;
         } else {
+          // Buscar el gasto localmente para obtener su image_url
+          const expToDelete = expenses.find(exp => String(exp.id) === id);
+
+          // Si el gasto tiene imagen asociada en Storage, eliminarla
+          if (expToDelete && expToDelete.image_url) {
+            try {
+              // Extrayendo el path de la URL del storage
+              const urlParts = expToDelete.image_url.split('/storage/v1/object/public/vouchers/');
+              if (urlParts.length > 1) {
+                const filePath = urlParts[1];
+                await supabase.storage.from('vouchers').remove([filePath]);
+              }
+            } catch (storageErr) {
+              console.error('Error al borrar la imagen de storage:', storageErr);
+            }
+          }
+
           expenses = expenses.filter(exp => String(exp.id) !== id);
           updateUI();
         }
