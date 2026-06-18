@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Estado del dashboard
   let expenses = [];
+  let userBudgets = { USD: 1000, PEN: 3000 };
   let expenseChartInstance = null;
   let categoryChartInstance = null;
 
@@ -272,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initDashboard() {
     initDateAndTime();
+    await fetchBudgets();
     await fetchExpenses();
   }
 
@@ -283,6 +285,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getLocalDateString(d = new Date()) {
     return d.toLocaleDateString('sv');
+  }
+
+  async function fetchBudgets() {
+    if (!currentUser) return;
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', currentUser.id);
+
+    if (error) {
+      console.error('Error fetching budgets:', error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      data.forEach(b => {
+        userBudgets[b.currency] = parseFloat(b.amount);
+      });
+    }
+    updateBudgetUI();
+  }
+
+  function updateBudgetUI() {
+    const currentMonth = getLocalDateString().slice(0, 7);
+    const monthData = expenses.filter(exp => exp.date.startsWith(currentMonth));
+    
+    // Determinar la moneda activa
+    const hasPEN = monthData.some(exp => exp.currency === 'PEN');
+    const activeCurrency = hasPEN ? 'PEN' : 'USD';
+    const limit = userBudgets[activeCurrency] || (activeCurrency === 'USD' ? 1000 : 3000);
+
+    let currentSpent = 0;
+    monthData.forEach(exp => {
+      if (exp.currency === activeCurrency) {
+        currentSpent += parseFloat(exp.amount);
+      }
+    });
+
+    const pct = Math.min((currentSpent / limit) * 100, 100);
+    const remaining = Math.max(limit - currentSpent, 0);
+
+    const container = document.getElementById('monthly-budget-container');
+    const progressBar = document.getElementById('monthly-budget-progress');
+    const pctLabel = document.getElementById('monthly-budget-pct');
+    const remLabel = document.getElementById('monthly-budget-rem');
+
+    if (container && progressBar && pctLabel && remLabel) {
+      container.classList.remove('hidden');
+      progressBar.style.width = `${pct}%`;
+
+      // Clases de color según el porcentaje de consumo
+      progressBar.className = 'budget-progress';
+      if (pct >= 90) {
+        progressBar.classList.add('danger');
+      } else if (pct >= 70) {
+        progressBar.classList.add('warning');
+      }
+
+      const symbol = activeCurrency === 'USD' ? '$' : 'S/';
+      pctLabel.innerText = `${pct.toFixed(0)}% consumido`;
+      remLabel.innerText = `${symbol}${remaining.toFixed(2)} restante`;
+    }
   }
 
   // Obtener datos de Supabase
@@ -456,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
     calculateKPIs();
     renderChart();
+    updateBudgetUI();
     
     // Si la pestaña activa es la de categorías, volver a renderizar el gráfico de dona
     const activeTab = document.querySelector('.chart-tab.active');
@@ -794,6 +859,65 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         },
         cutout: '65%'
+      }
+    });
+  }
+
+  // Manejo del Modal de Presupuestos
+  const openBudgetBtn = document.getElementById('open-budget-btn');
+  const budgetModal = document.getElementById('budget-modal');
+  const closeBudgetBtn = document.querySelector('.close-budget-modal');
+  const budgetForm = document.getElementById('budget-form');
+
+  if (openBudgetBtn && budgetModal && closeBudgetBtn && budgetForm) {
+    openBudgetBtn.addEventListener('click', () => {
+      document.getElementById('budget-usd').value = userBudgets.USD;
+      document.getElementById('budget-pen').value = userBudgets.PEN;
+      budgetModal.classList.remove('hidden');
+    });
+
+    closeBudgetBtn.addEventListener('click', () => budgetModal.classList.add('hidden'));
+
+    budgetModal.addEventListener('click', (e) => {
+      if (e.target === budgetModal) budgetModal.classList.add('hidden');
+    });
+
+    budgetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newUSD = parseFloat(document.getElementById('budget-usd').value);
+      const newPEN = parseFloat(document.getElementById('budget-pen').value);
+
+      const saveBtn = document.getElementById('budget-save-btn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Guardando...';
+
+      try {
+        // Guardar presupuesto de USD en Supabase
+        const { error: errorUSD } = await supabase
+          .from('budgets')
+          .upsert({ user_id: currentUser.id, currency: 'USD', amount: newUSD }, { onConflict: 'user_id,currency' });
+        
+        if (errorUSD) throw errorUSD;
+
+        // Guardar presupuesto de PEN en Supabase
+        const { error: errorPEN } = await supabase
+          .from('budgets')
+          .upsert({ user_id: currentUser.id, currency: 'PEN', amount: newPEN }, { onConflict: 'user_id,currency' });
+
+        if (errorPEN) throw errorPEN;
+
+        // Actualizar localmente
+        userBudgets.USD = newUSD;
+        userBudgets.PEN = newPEN;
+
+        budgetModal.classList.add('hidden');
+        updateBudgetUI();
+      } catch (err) {
+        console.error('Error saving budgets:', err);
+        alert('Fallo al guardar límites: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Guardar Límites';
       }
     });
   }
