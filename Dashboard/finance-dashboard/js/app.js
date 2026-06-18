@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Determinar la moneda activa
     const hasPEN = monthData.some(exp => exp.currency === 'PEN');
     const activeCurrency = hasPEN ? 'PEN' : 'USD';
-    const limit = userBudgets[activeCurrency] || (activeCurrency === 'USD' ? 1000 : 3000);
+    const limit = userBudgets[activeCurrency] ?? (activeCurrency === 'USD' ? 1000 : 3000);
 
     let currentSpent = 0;
     monthData.forEach(exp => {
@@ -892,19 +892,12 @@ document.addEventListener('DOMContentLoaded', () => {
       saveBtn.innerText = 'Guardando...';
 
       try {
-        // Guardar presupuesto de USD en Supabase
-        const { error: errorUSD } = await supabase
-          .from('budgets')
-          .upsert({ user_id: currentUser.id, currency: 'USD', amount: newUSD }, { onConflict: 'user_id,currency' });
-        
-        if (errorUSD) throw errorUSD;
-
-        // Guardar presupuesto de PEN en Supabase
-        const { error: errorPEN } = await supabase
-          .from('budgets')
-          .upsert({ user_id: currentUser.id, currency: 'PEN', amount: newPEN }, { onConflict: 'user_id,currency' });
-
-        if (errorPEN) throw errorPEN;
+        const [resUSD, resPEN] = await Promise.all([
+          supabase.from('budgets').upsert({ user_id: currentUser.id, currency: 'USD', amount: newUSD }, { onConflict: 'user_id,currency' }),
+          supabase.from('budgets').upsert({ user_id: currentUser.id, currency: 'PEN', amount: newPEN }, { onConflict: 'user_id,currency' })
+        ]);
+        if (resUSD.error) throw resUSD.error;
+        if (resPEN.error) throw resPEN.error;
 
         // Actualizar localmente
         userBudgets.USD = newUSD;
