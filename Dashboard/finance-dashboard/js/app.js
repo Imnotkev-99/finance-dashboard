@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    const pct = Math.min((currentSpent / limit) * 100, 100);
+    const pct = limit > 0 ? Math.min((currentSpent / limit) * 100, 100) : (currentSpent > 0 ? 100 : 0);
     const remaining = Math.max(limit - currentSpent, 0);
 
     const container = document.getElementById('monthly-budget-container');
