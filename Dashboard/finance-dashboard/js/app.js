@@ -176,23 +176,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       let imageUrl = null;
+      let uploadedFilePath = null;
 
       // 1. Subir imagen a Supabase Storage SOLO si se adjuntó un archivo
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${currentUser.id}/${fileName}`;
+        uploadedFilePath = `${currentUser.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('vouchers')
-          .upload(filePath, file);
+          .upload(uploadedFilePath, file);
 
         if (uploadError) throw uploadError;
 
         // 2. Obtener URL pública de la imagen
         const { data: urlData } = supabase.storage
           .from('vouchers')
-          .getPublicUrl(filePath);
+          .getPublicUrl(uploadedFilePath);
 
         imageUrl = urlData.publicUrl;
       }
@@ -213,7 +214,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }])
         .select();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Rollback: Si se subió la imagen pero falló la DB, eliminar archivo para evitar huérfanos
+        if (file && uploadedFilePath) {
+          try {
+            await supabase.storage.from('vouchers').remove([uploadedFilePath]);
+          } catch (storageErr) {
+            console.error('Failed to clean up uploaded voucher after DB insert failure:', storageErr);
+          }
+        }
+        throw dbError;
+      }
 
       // 4. Actualizar vista local
       expenses.unshift(newExpense[0]);
@@ -252,6 +263,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (confirmDelete) {
         e.target.textContent = '...';
         e.target.disabled = true;
+
+        // Buscar el gasto localmente para obtener su image_url
+        const expToDelete = expenses.find(exp => String(exp.id) === id);
+
+        // Si el gasto tiene imagen asociada en Storage, eliminarla
+        if (expToDelete && expToDelete.image_url) {
+          try {
+            // Extrayendo el path de la URL del storage
+            const urlParts = expToDelete.image_url.split('/storage/v1/object/public/vouchers/');
+            if (urlParts.length > 1) {
+              const filePath = urlParts[1];
+              await supabase.storage.from('vouchers').remove([filePath]);
+            }
+          } catch (storageErr) {
+            console.error('Error al borrar la imagen de storage:', storageErr);
+          }
+        }
 
         const { error } = await supabase
           .from('expenses')
