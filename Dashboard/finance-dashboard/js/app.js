@@ -408,47 +408,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderChart() {
     const ctx = document.getElementById('expenseChart').getContext('2d');
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonth = getLocalDateString().slice(0, 7);
     const monthData = expenses.filter(exp => exp.date.startsWith(currentMonth));
 
-    const aggregatedData = {};
+    // Agregar de forma separada por moneda
+    const aggregatedUSD = {};
+    const aggregatedPEN = {};
+
     monthData.forEach(exp => {
-      aggregatedData[exp.date] = (aggregatedData[exp.date] || 0) + parseFloat(exp.amount);
+      const amt = parseFloat(exp.amount);
+      if (exp.currency === 'PEN') {
+        aggregatedPEN[exp.date] = (aggregatedPEN[exp.date] || 0) + amt;
+      } else {
+        aggregatedUSD[exp.date] = (aggregatedUSD[exp.date] || 0) + amt;
+      }
     });
 
-    const labels = Object.keys(aggregatedData).sort();
-    const dataPoints = labels.map(date => aggregatedData[date]);
+    // Obtener lista consolidada de todas las fechas que tienen datos (ordenada)
+    const allDates = Array.from(new Set([...Object.keys(aggregatedUSD), ...Object.keys(aggregatedPEN)])).sort();
+
+    const usdPoints = allDates.map(date => aggregatedUSD[date] || 0);
+    const penPoints = allDates.map(date => aggregatedPEN[date] || 0);
 
     if (expenseChartInstance) {
       expenseChartInstance.destroy();
     }
 
-    // Relleno en gradiente esmeralda
-    const fill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
-    fill.addColorStop(0, 'rgba(16, 185, 129, 0.30)');
-    fill.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    // Relleno en gradiente esmeralda (USD)
+    const fillUSD = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
+    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.20)');
+    fillUSD.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    // Relleno en gradiente azul (PEN)
+    const fillPEN = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
+    fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.20)');
+    fillPEN.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     expenseChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: labels,
-        datasets: [{
-          label: 'Gasto Diario',
-          data: dataPoints,
-          borderColor: '#10b981',
-          backgroundColor: fill,
-          borderWidth: 2.5,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#059669',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointHoverBorderWidth: 3
-        }]
+        labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día en el eje X para limpieza
+        datasets: [
+          {
+            label: 'Dólares ($)',
+            data: usdPoints,
+            borderColor: '#10b981',
+            backgroundColor: fillUSD,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#059669',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointHoverBorderWidth: 3
+          },
+          {
+            label: 'Soles (S/)',
+            data: penPoints,
+            borderColor: '#3b82f6',
+            backgroundColor: fillPEN,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#2563eb',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointHoverBorderWidth: 3
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -456,16 +489,31 @@ document.addEventListener('DOMContentLoaded', () => {
         animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: { display: false },
+          legend: { 
+            display: true,
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { size: 12, family: "'Inter', sans-serif" },
+              color: '#5f6b7a'
+            }
+          },
           tooltip: {
             backgroundColor: '#14181f',
             titleColor: '#ffffff',
             bodyColor: '#d7dce2',
             padding: 12,
             cornerRadius: 10,
-            displayColors: false,
-            borderColor: 'rgba(16,185,129,0.4)',
-            borderWidth: 1
+            displayColors: true,
+            borderColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            callbacks: {
+              title: (tooltipItems) => `Día: ${allDates[tooltipItems[0].dataIndex]}`,
+              label: (context) => {
+                const symbol = context.datasetIndex === 0 ? '$' : 'S/';
+                return `${context.dataset.label}: ${symbol}${context.raw.toFixed(2)}`;
+              }
+            }
           }
         },
         scales: {
