@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elementos del Dashboard
   const form = document.getElementById('expense-form');
   const voucherInput = document.getElementById('voucher');
+  const fileNameDisplay = document.getElementById('file-name');
   const tableBody = document.getElementById('table-body');
   const modal = document.getElementById('image-modal');
   const modalImg = document.getElementById('modal-image');
@@ -116,11 +117,23 @@ document.addEventListener('DOMContentLoaded', () => {
     authScreen.classList.remove('hidden');
     mainDashboard.classList.add('hidden');
     authForm.reset();
+    form.reset();
+    fileNameDisplay.textContent = 'Ningún archivo seleccionado';
     tableBody.innerHTML = ''; // Limpiar datos de la vista
   }
 
   logoutBtn.addEventListener('click', async () => {
     await supabase.auth.signOut();
+  });
+
+  // Actualizar nombre de archivo seleccionado en input
+  voucherInput.addEventListener('change', () => {
+    const file = voucherInput.files[0];
+    if (file) {
+      fileNameDisplay.textContent = file.name;
+    } else {
+      fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+    }
   });
 
   // ============================================================
@@ -238,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 4. Actualizar vista local
       expenses.unshift(newExpense[0]);
       form.reset();
+      fileNameDisplay.textContent = 'Ningún archivo seleccionado';
       updateUI();
 
       // Resetear fecha y hora actual

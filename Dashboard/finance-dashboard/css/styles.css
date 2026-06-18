@@ -640,6 +640,10 @@ td {
 }
 
 .close-modal {
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
   position: absolute;
   top: 24px;
   right: 32px;
