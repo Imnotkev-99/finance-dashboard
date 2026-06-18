@@ -510,6 +510,18 @@ select option {
   font-weight: 500;
 }
 
+.category-tag-mini {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
 /* ============================================================
    Zona de Carga de Archivos (Drag & Drop)
    ============================================================ */

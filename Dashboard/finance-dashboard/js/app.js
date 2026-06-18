@@ -13,11 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Estado del dashboard
   let expenses = [];
   let expenseChartInstance = null;
+  let categoryChartInstance = null;
 
   // Catálogo de monedas soportadas
   const CURRENCIES = {
     USD: { label: 'Dólares', symbol: '$' },
     PEN: { label: 'Soles', symbol: 'S/' }
+  };
+
+  const categoryEmojis = {
+    Alimentación: '🍔',
+    Transporte: '🚗',
+    Servicios: '💡',
+    Suscripciones: '💻',
+    Oficina: '📦',
+    Otros: '🏷️'
   };
 
   // Elementos Auth
@@ -300,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
 
     const concept = document.getElementById('concept').value;
+    const category = document.getElementById('category').value;
     const amount = parseFloat(document.getElementById('amount').value);
     const currency = document.getElementById('currency').value;
     const date = document.getElementById('date').value;
@@ -339,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .from('expenses')
         .insert([{
           concept,
+          category,
           amount,
           currency,
           date,
@@ -366,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fileNameDisplay.textContent = 'Ningún archivo seleccionado';
       fileNameDisplay.classList.add('hidden');
       if (uploadZone) uploadZone.classList.remove('has-file');
+      document.getElementById('category').value = 'Otros';
       
       updateUI();
       initDateAndTime();
@@ -443,6 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTable();
     calculateKPIs();
     renderChart();
+    
+    // Si la pestaña activa es la de categorías, volver a renderizar el gráfico de dona
+    const activeTab = document.querySelector('.chart-tab.active');
+    if (activeTab && activeTab.getAttribute('data-tab') === 'categories') {
+      renderCategoryChart();
+    }
   }
 
   function renderTable() {
@@ -465,9 +484,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       tr.className = 'row-anim';
       tr.style.animationDelay = `${Math.min(i * 0.03, 0.3)}s`;
+
+      const catEmoji = categoryEmojis[exp.category] || '🏷️';
+      const catLabel = exp.category || 'Otros';
+
       tr.innerHTML = `
                 <td>${exp.date} <br><small style="color: var(--text-faint)">${exp.time}</small></td>
-                <td style="font-weight: 500;">${exp.concept}</td>
+                <td style="font-weight: 500;">
+                  ${exp.concept} <br>
+                  <span class="category-tag-mini">${catEmoji} ${catLabel}</span>
+                </td>
                 <td style="color: var(--accent-bright); font-weight: 600;">${cur.symbol}${parseFloat(exp.amount).toFixed(2)}</td>
                 <td><span class="currency-tag">${cur.label}</span></td>
                 <td>
@@ -661,6 +687,113 @@ document.addEventListener('DOMContentLoaded', () => {
             ticks: { color: '#9da3ae', font: { size: 11 } }
           }
         }
+      }
+    });
+  }
+
+  // Lógica de pestañas de gráficos (Evolución / Categorías)
+  const chartTabs = document.querySelectorAll('.chart-tab');
+  const lineCanvas = document.getElementById('expenseChart');
+  const donutCanvas = document.getElementById('categoryChart');
+
+  chartTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      chartTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      if (tab.getAttribute('data-tab') === 'trend') {
+        lineCanvas.classList.remove('hidden');
+        donutCanvas.classList.add('hidden');
+      } else {
+        lineCanvas.classList.add('hidden');
+        donutCanvas.classList.remove('hidden');
+        renderCategoryChart();
+      }
+    });
+  });
+
+  function renderCategoryChart() {
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Obtener gastos del mes actual
+    const currentMonth = getLocalDateString().slice(0, 7);
+    
+    // Detectar moneda activa basándonos en si hay gastos PEN en el mes actual
+    const activeCurrency = expenses.some(exp => exp.date.startsWith(currentMonth) && exp.currency === 'PEN') ? 'PEN' : 'USD';
+    
+    // Filtrar gastos del mes actual en la moneda activa
+    const monthData = expenses.filter(exp => exp.date.startsWith(currentMonth) && exp.currency === activeCurrency);
+    
+    // Agrupar gastos por categoría
+    const aggregated = {};
+    monthData.forEach(exp => {
+      const cat = exp.category || 'Otros';
+      aggregated[cat] = (aggregated[cat] || 0) + parseFloat(exp.amount);
+    });
+
+    const labels = Object.keys(aggregated);
+    const dataPoints = Object.values(aggregated);
+
+    const colors = {
+      Alimentación: '#10b981',
+      Transporte: '#3b82f6',
+      Servicios: '#f59e0b',
+      Suscripciones: '#8b5cf6',
+      Oficina: '#ef4444',
+      Otros: '#9ca3af'
+    };
+
+    const bgColors = labels.map(label => colors[label] || '#9ca3af');
+
+    if (categoryChartInstance) {
+      categoryChartInstance.destroy();
+    }
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    categoryChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dataPoints,
+          backgroundColor: bgColors,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.08)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#9da3ae',
+              font: { family: "'Inter', sans-serif", size: 12, weight: '500' }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#16171d',
+            titleColor: '#ffffff',
+            bodyColor: '#f5f6f8',
+            padding: 12,
+            cornerRadius: 10,
+            displayColors: true,
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            borderWidth: 1,
+            callbacks: {
+              label: (context) => {
+                const symbol = activeCurrency === 'USD' ? '$' : 'S/';
+                return ` ${context.label}: ${symbol}${context.raw.toFixed(2)}`;
+              }
+            }
+          }
+        },
+        cutout: '65%'
       }
     });
   }
