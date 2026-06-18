@@ -1216,10 +1216,10 @@ td {
   transition: all 0.2s ease;
 }
 .chart-tab:hover {
-  color: var(--text-normal);
+  color: var(--text);
 }
 .chart-tab.active {
-  background: var(--bg-card);
+  background: var(--surface-hover);
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -1248,7 +1248,7 @@ td {
 }
 .kpi__config-btn:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: var(--text-normal);
+  color: var(--text);
   transform: rotate(30deg);
 }
 .kpi__config-btn svg {

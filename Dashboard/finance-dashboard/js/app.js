@@ -39,6 +39,56 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalImg = document.getElementById('modal-image');
   const closeModal = document.querySelector('.close-modal');
   const submitBtn = form.querySelector('button[type="submit"]');
+  const uploadZone = document.getElementById('upload-zone');
+
+  // ============================================================
+  //  AYUDANTES DE ANIMACIÓN Y TRANSICIONES
+  // ============================================================
+
+  // Transición suave entre pantallas usando opacidad, escala y desenfoque
+  async function transitionScreens(fromScreen, toScreen, callback) {
+    // Definir transiciones temporales en JS
+    fromScreen.style.transition = 'opacity 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), filter 250ms cubic-bezier(0.16, 1, 0.3, 1)';
+    toScreen.style.transition = 'opacity 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), filter 250ms cubic-bezier(0.16, 1, 0.3, 1)';
+    
+    // 1. Desvanecer pantalla actual
+    fromScreen.style.opacity = '0';
+    fromScreen.style.transform = 'scale(0.98)';
+    fromScreen.style.filter = 'blur(6px)';
+    
+    await new Promise(resolve => setTimeout(resolve, 250));
+    
+    fromScreen.classList.add('hidden');
+    // Limpiar estilos inline
+    fromScreen.style.opacity = '';
+    fromScreen.style.transform = '';
+    fromScreen.style.filter = '';
+    fromScreen.style.transition = '';
+    
+    // Ejecutar lógica intermedia (ej. cargar datos)
+    if (callback) callback();
+    
+    // 2. Preparar nueva pantalla invisible
+    toScreen.style.opacity = '0';
+    toScreen.style.transform = 'scale(1.02)';
+    toScreen.style.filter = 'blur(6px)';
+    toScreen.classList.remove('hidden');
+    
+    // Forzar reflow para que el navegador procese los estados iniciales
+    toScreen.offsetHeight;
+    
+    // 3. Mostrar pantalla final
+    toScreen.style.opacity = '1';
+    toScreen.style.transform = 'scale(1)';
+    toScreen.style.filter = 'none';
+    
+    await new Promise(resolve => setTimeout(resolve, 250));
+    // Limpiar estilos inline finales
+    toScreen.style.opacity = '';
+    toScreen.style.transform = '';
+    toScreen.style.filter = '';
+    toScreen.style.transition = '';
+  }
 
   // ============================================================
   //  AUTENTICACIÓN
@@ -47,12 +97,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // Comprobar sesión activa al cargar
   checkSession();
 
-  // Cambiar entre Login y Registro
+  // Cambiar entre Login y Registro con micro-animación de desenfoque
   toggleAuthBtn.addEventListener('click', () => {
-    isLoginMode = !isLoginMode;
-    authTitle.textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
-    authSubmitBtn.textContent = isLoginMode ? 'Entrar' : 'Registrarse';
-    toggleAuthBtn.textContent = isLoginMode ? 'Regístrate aquí' : 'Inicia sesión aquí';
+    const formFields = authForm.querySelectorAll('.form-group, #auth-submit-btn');
+    const title = document.getElementById('auth-title');
+    const elementsToAnimate = [...formFields, title];
+    
+    elementsToAnimate.forEach(el => {
+      el.style.transition = 'opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), filter 150ms cubic-bezier(0.16, 1, 0.3, 1)';
+      el.style.opacity = '0';
+      el.style.filter = 'blur(4px)';
+    });
+
+    setTimeout(() => {
+      isLoginMode = !isLoginMode;
+      title.textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+      authSubmitBtn.textContent = isLoginMode ? 'Entrar' : 'Registrarse';
+      
+      const switchText = document.querySelector('.auth-switch');
+      if (switchText) {
+        switchText.childNodes[0].textContent = isLoginMode ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? ';
+      }
+      toggleAuthBtn.textContent = isLoginMode ? 'Regístrate aquí' : 'Inicia sesión aquí';
+      
+      elementsToAnimate.forEach(el => {
+        el.style.opacity = '1';
+        el.style.filter = 'none';
+      });
+      
+      setTimeout(() => {
+        elementsToAnimate.forEach(el => {
+          el.style.transition = '';
+          el.style.opacity = '';
+          el.style.filter = '';
+        });
+      }, 150);
+    }, 150);
   });
 
   // Procesar Formulario de Auth
@@ -70,11 +150,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        // Registro de nuevo amigo
+        // Registro
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         alert('Registro exitoso. Si Supabase requiere confirmación, revisa tu correo. Si no, ya puedes iniciar sesión.');
-        isLoginMode = false; // toggleAuthBtn.click() lo pondrá en Login
+        isLoginMode = false;
+        // Simular click para volver al login con la animación
         toggleAuthBtn.click();
       }
     } catch (error) {
@@ -107,19 +188,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showDashboard() {
-    authScreen.classList.add('hidden');
-    mainDashboard.classList.remove('hidden');
-    userEmailDisplay.textContent = currentUser.email;
-    initDashboard(); // Carga fecha/hora y datos
+    transitionScreens(authScreen, mainDashboard, () => {
+      userEmailDisplay.textContent = currentUser.email;
+      
+      // Actualizar avatar con la primera letra del usuario actual
+      const firstLetter = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U';
+      document.querySelectorAll('.avatar').forEach(avatar => {
+        avatar.textContent = firstLetter;
+      });
+
+      initDashboard();
+    });
   }
 
   function hideDashboard() {
-    authScreen.classList.remove('hidden');
-    mainDashboard.classList.add('hidden');
-    authForm.reset();
-    form.reset();
-    fileNameDisplay.textContent = 'Ningún archivo seleccionado';
-    tableBody.innerHTML = ''; // Limpiar datos de la vista
+    transitionScreens(mainDashboard, authScreen, () => {
+      authForm.reset();
+      form.reset();
+      fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+      fileNameDisplay.classList.add('hidden');
+      if (uploadZone) uploadZone.classList.remove('has-file');
+      tableBody.innerHTML = '';
+    });
   }
 
   logoutBtn.addEventListener('click', async () => {
@@ -131,10 +221,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const file = voucherInput.files[0];
     if (file) {
       fileNameDisplay.textContent = file.name;
+      fileNameDisplay.classList.remove('hidden');
+      if (uploadZone) uploadZone.classList.add('has-file');
     } else {
       fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+      fileNameDisplay.classList.add('hidden');
+      if (uploadZone) uploadZone.classList.remove('has-file');
     }
   });
+
+  // Implementación de drag and drop en la zona de carga de voucher
+  if (uploadZone && voucherInput) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+      }, false);
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) {
+        voucherInput.files = files;
+        voucherInput.dispatchEvent(new Event('change'));
+      }
+    }, false);
+  }
 
   // ============================================================
   //  DASHBOARD
@@ -142,14 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initDashboard() {
     initDateAndTime();
-
-    // Cargar datos desde la nube
     await fetchExpenses();
   }
 
   function initDateAndTime() {
     const now = new Date();
-    // Formato local AAAA-MM-DD
     document.getElementById('date').value = getLocalDateString(now);
     document.getElementById('time').value = now.toTimeString().slice(0, 5);
   }
@@ -158,9 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return d.toLocaleDateString('sv');
   }
 
-  // 📡 Obtener datos de Supabase
+  // Obtener datos de Supabase
   async function fetchExpenses() {
-    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando base de datos cloud... ⚡</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px 0;">Cargando base de datos cloud... ⚡</td></tr>';
 
     const { data, error } = await supabase
       .from('expenses')
@@ -170,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (error) {
       console.error('Error fetching data:', error);
-      tableBody.innerHTML = '<tr><td colspan="6" style="color:var(--danger); text-align:center;">Error de conexión. Revisa tus claves.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="color:var(--danger); text-align:center; padding: 24px 0;">Error de conexión. Revisa tus claves.</td></tr>';
       return;
     }
 
@@ -178,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUI();
   }
 
-  // 📤 Enviar formulario y subir a Cloud
+  // Enviar formulario y subir a Cloud
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -189,9 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const time = document.getElementById('time').value;
     const file = voucherInput.files[0];
 
-    // El voucher es OPCIONAL: si no hay archivo, se guarda sin imagen.
-
-    // Estado de carga (UX)
     submitBtn.textContent = 'Procesando en la Nube... ⚡';
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.7';
@@ -200,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let imageUrl = null;
       let uploadedFilePath = null;
 
-      // 1. Subir imagen a Supabase Storage SOLO si se adjuntó un archivo
+      // 1. Subir imagen a Supabase Storage si se adjuntó un archivo
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -212,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (uploadError) throw uploadError;
 
-        // 2. Obtener URL pública de la imagen
+        // 2. Obtener URL pública
         const { data: urlData } = supabase.storage
           .from('vouchers')
           .getPublicUrl(uploadedFilePath);
@@ -221,8 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 3. Guardar registro en la base de datos relacional
-      //    user_id explícito = usuario de la sesión, para cumplir la
-      //    política RLS (auth.uid() = user_id) sin depender del default.
       const { data: newExpense, error: dbError } = await supabase
         .from('expenses')
         .insert([{
@@ -237,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .select();
 
       if (dbError) {
-        // Rollback: Si se subió la imagen pero falló la DB, eliminar archivo para evitar huérfanos
+        // Rollback
         if (file && uploadedFilePath) {
           try {
             await supabase.storage.from('vouchers').remove([uploadedFilePath]);
@@ -252,16 +364,16 @@ document.addEventListener('DOMContentLoaded', () => {
       expenses.unshift(newExpense[0]);
       form.reset();
       fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+      fileNameDisplay.classList.add('hidden');
+      if (uploadZone) uploadZone.classList.remove('has-file');
+      
       updateUI();
-
-      // Resetear fecha y hora actual
       initDateAndTime();
 
     } catch (error) {
       console.error('Error procesando el gasto:', error);
       alert('Fallo al guardar: ' + error.message);
     } finally {
-      // Restaurar botón
       submitBtn.textContent = 'Guardar Registro';
       submitBtn.disabled = false;
       submitBtn.style.opacity = '1';
@@ -271,20 +383,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Delegación de eventos (Ver imagen y Eliminar en la Nube)
   tableBody.addEventListener('click', async (e) => {
     // Ver Imagen
-    if (e.target.classList.contains('view-img-btn')) {
-      const imgData = e.target.getAttribute('data-img');
+    const viewImgBtn = e.target.closest('.view-img-btn');
+    if (viewImgBtn) {
+      const imgData = viewImgBtn.getAttribute('data-img');
       modalImg.src = imgData;
       modal.classList.remove('hidden');
     }
 
     // Eliminar Registro
-    if (e.target.classList.contains('delete-btn')) {
-      const id = e.target.getAttribute('data-id');
+    const deleteBtn = e.target.closest('.delete-btn');
+    if (deleteBtn) {
+      const id = deleteBtn.getAttribute('data-id');
       const confirmDelete = confirm('¿Borrar registro de la base de datos permanentemente?');
 
       if (confirmDelete) {
-        e.target.textContent = '...';
-        e.target.disabled = true;
+        deleteBtn.innerHTML = '<span class="spinner-inline"></span>';
+        deleteBtn.disabled = true;
 
         const { error } = await supabase
           .from('expenses')
@@ -293,16 +407,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (error) {
           alert('Error al borrar: ' + error.message);
-          e.target.textContent = 'X';
-          e.target.disabled = false;
+          updateUI();
         } else {
-          // Buscar el gasto localmente para obtener su image_url
+          // Buscar el gasto localmente
           const expToDelete = expenses.find(exp => String(exp.id) === id);
 
           // Si el gasto tiene imagen asociada en Storage, eliminarla
           if (expToDelete && expToDelete.image_url) {
             try {
-              // Extrayendo el path de la URL del storage
               const urlParts = expToDelete.image_url.split('/storage/v1/object/public/vouchers/');
               if (urlParts.length > 1) {
                 const filePath = urlParts[1];
@@ -337,19 +449,26 @@ document.addEventListener('DOMContentLoaded', () => {
     tableBody.innerHTML = '';
 
     if (expenses.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No hay gastos registrados aún.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding: 32px 0;">No hay gastos registrados aún.</td></tr>';
       return;
     }
+
+    const deleteIcon = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delete-icon" style="width: 14px; height: 14px; display: block; margin: auto;">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      </svg>
+    `;
 
     expenses.forEach((exp, i) => {
       const cur = CURRENCIES[exp.currency] || CURRENCIES.USD;
       const tr = document.createElement('tr');
       tr.className = 'row-anim';
-      tr.style.animationDelay = `${Math.min(i * 0.04, 0.4)}s`;
+      tr.style.animationDelay = `${Math.min(i * 0.03, 0.3)}s`;
       tr.innerHTML = `
-                <td>${exp.date} <br><small style="color: var(--text-muted)">${exp.time}</small></td>
-                <td>${exp.concept}</td>
-                <td style="color: var(--accent); font-weight: 600;">${cur.symbol}${parseFloat(exp.amount).toFixed(2)}</td>
+                <td>${exp.date} <br><small style="color: var(--text-faint)">${exp.time}</small></td>
+                <td style="font-weight: 500;">${exp.concept}</td>
+                <td style="color: var(--accent-bright); font-weight: 600;">${cur.symbol}${parseFloat(exp.amount).toFixed(2)}</td>
                 <td><span class="currency-tag">${cur.label}</span></td>
                 <td>
                     ${exp.image_url
@@ -357,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
           : `<span class="no-voucher">Sin voucher</span>`}
                 </td>
                 <td>
-                    <button class="delete-btn" data-id="${exp.id}">X</button>
+                    <button class="delete-btn" data-id="${exp.id}" title="Eliminar registro">${deleteIcon}</button>
                 </td>
             `;
       tableBody.appendChild(tr);
@@ -397,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return parts.length ? parts.join('  ·  ') : '$0.00';
   }
 
-  // Anima de 0 al valor (count-up), respetando multi-moneda y reduced-motion
+  // Anima de 0 al valor (count-up)
   function animateTotals(elId, totals) {
     const el = document.getElementById(elId);
     if (!el) return;
@@ -421,7 +540,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderChart() {
-    const ctx = document.getElementById('expenseChart').getContext('2d');
+    const canvas = document.getElementById('expenseChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const currentMonth = getLocalDateString().slice(0, 7);
     const monthData = expenses.filter(exp => exp.date.startsWith(currentMonth));
 
@@ -449,13 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Relleno en gradiente esmeralda (USD)
-    const fillUSD = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
-    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.20)');
+    const fillUSD = ctx.createLinearGradient(0, 0, 0, 260);
+    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
     fillUSD.addColorStop(1, 'rgba(16, 185, 129, 0)');
 
     // Relleno en gradiente azul (PEN)
-    const fillPEN = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 260);
-    fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.20)');
+    const fillPEN = ctx.createLinearGradient(0, 0, 0, 260);
+    fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
     fillPEN.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -463,18 +584,18 @@ document.addEventListener('DOMContentLoaded', () => {
     expenseChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día en el eje X para limpieza
+        labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día
         datasets: [
           {
             label: 'Dólares ($)',
             data: usdPoints,
             borderColor: '#10b981',
             backgroundColor: fillUSD,
-            borderWidth: 2.5,
+            borderWidth: 2,
             fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#059669',
+            tension: 0.35,
+            pointBackgroundColor: '#121318',
+            pointBorderColor: '#10b981',
             pointBorderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6,
@@ -485,11 +606,11 @@ document.addEventListener('DOMContentLoaded', () => {
             data: penPoints,
             borderColor: '#3b82f6',
             backgroundColor: fillPEN,
-            borderWidth: 2.5,
+            borderWidth: 2,
             fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#2563eb',
+            tension: 0.35,
+            pointBackgroundColor: '#121318',
+            pointBorderColor: '#3b82f6',
             pointBorderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6,
@@ -507,19 +628,19 @@ document.addEventListener('DOMContentLoaded', () => {
             display: true,
             position: 'top',
             labels: {
-              boxWidth: 12,
-              font: { size: 12, family: "'Inter', sans-serif" },
-              color: '#5f6b7a'
+              boxWidth: 10,
+              font: { size: 12, family: "'Inter', sans-serif", weight: '500' },
+              color: '#9da3ae'
             }
           },
           tooltip: {
-            backgroundColor: '#14181f',
+            backgroundColor: '#16171d',
             titleColor: '#ffffff',
-            bodyColor: '#d7dce2',
+            bodyColor: '#f5f6f8',
             padding: 12,
             cornerRadius: 10,
             displayColors: true,
-            borderColor: 'rgba(255,255,255,0.08)',
+            borderColor: 'rgba(255, 255, 255, 0.08)',
             borderWidth: 1,
             callbacks: {
               title: (tooltipItems) => `Día: ${allDates[tooltipItems[0].dataIndex]}`,
@@ -532,12 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         scales: {
           y: {
-            grid: { color: 'rgba(16, 24, 40, 0.06)', drawBorder: false },
-            ticks: { color: '#5f6b7a', font: { size: 12 } }
+            grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+            ticks: { color: '#9da3ae', font: { size: 11 } }
           },
           x: {
             grid: { display: false, drawBorder: false },
-            ticks: { color: '#5f6b7a', font: { size: 12 } }
+            ticks: { color: '#9da3ae', font: { size: 11 } }
           }
         }
       }
