@@ -43,6 +43,7 @@ alter table public.expenses
 
 create index if not exists expenses_user_id_idx on public.expenses (user_id);
 create index if not exists expenses_date_idx    on public.expenses (date desc);
+create index if not exists expenses_user_id_date_time_idx on public.expenses (user_id, date desc, time desc);
 
 -- ------------------------------------------------------------
 --  2) Row Level Security
@@ -117,13 +118,13 @@ begin
   create policy "vouchers_auth_insert"
     on storage.objects for insert
     to authenticated
-    with check (bucket_id = 'vouchers');
+    with check (bucket_id = 'vouchers' and (storage.foldername(name))[1] = auth.uid()::text);
 
   drop policy if exists "vouchers_auth_delete" on storage.objects;
   create policy "vouchers_auth_delete"
     on storage.objects for delete
     to authenticated
-    using (bucket_id = 'vouchers');
+    using (bucket_id = 'vouchers' and (storage.foldername(name))[1] = auth.uid()::text);
 exception
   when insufficient_privilege then
     raise notice 'No se pudieron crear las políticas de storage por SQL (must be owner). Créalas desde el panel: Storage → vouchers → Policies.';
