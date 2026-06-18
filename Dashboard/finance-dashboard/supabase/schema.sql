@@ -129,3 +129,47 @@ exception
   when insufficient_privilege then
     raise notice 'No se pudieron crear las políticas de storage por SQL (must be owner). Créalas desde el panel: Storage → vouchers → Policies.';
 end $$;
+
+
+-- ============================================================
+--  4) Categorización y Presupuestos (Actualización 2026-06-18)
+-- ============================================================
+
+-- Columna de categoría en expenses
+alter table public.expenses
+  add column if not exists category text not null default 'Otros';
+
+-- Tabla para almacenar límites de presupuesto mensual por usuario y moneda
+create table if not exists public.budgets (
+  id          uuid not null default gen_random_uuid() primary key,
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  currency    text not null check (currency in ('USD', 'PEN')),
+  amount      numeric(10, 2) not null check (amount >= 0),
+  created_at  timestamptz not null default now(),
+  constraint unique_user_currency unique (user_id, currency)
+);
+
+-- Habilitar Row Level Security (RLS) en budgets
+alter table public.budgets enable row level security;
+
+-- Eliminar políticas previas si existen de budgets
+do $$
+declare
+  pol record;
+begin
+  for pol in
+    select policyname
+    from pg_policies
+    where schemaname = 'public' and tablename = 'budgets'
+  loop
+    execute format('drop policy %I on public.budgets', pol.policyname);
+  end loop;
+end $$;
+
+-- Crear política RLS para budgets (acceso completo a los propios presupuestos)
+create policy "budgets_manage_own"
+  on public.budgets for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
