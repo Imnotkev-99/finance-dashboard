@@ -128,12 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
 
   async function initDashboard() {
-    const now = new Date();
-    document.getElementById('date').value = now.toISOString().split('T')[0];
-    document.getElementById('time').value = now.toTimeString().slice(0, 5);
+    initDateAndTime();
 
     // Cargar datos desde la nube
     await fetchExpenses();
+  }
+
+  function initDateAndTime() {
+    const now = new Date();
+    // Formato local AAAA-MM-DD
+    document.getElementById('date').value = getLocalDateString(now);
+    document.getElementById('time').value = now.toTimeString().slice(0, 5);
+  }
+
+  function getLocalDateString(d = new Date()) {
+    return d.toLocaleDateString('sv');
   }
 
   // 📡 Obtener datos de Supabase
@@ -232,8 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateUI();
 
       // Resetear fecha y hora actual
-      document.getElementById('date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('time').value = new Date().toTimeString().slice(0, 5);
+      initDateAndTime();
 
     } catch (error) {
       console.error('Error procesando el gasto:', error);
@@ -343,9 +351,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function calculateKPIs() {
-    const today = new Date().toISOString().split('T')[0];
     const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().split('T')[0];
+    const today = getLocalDateString(now);
+    
+    const tempDate = new Date(now);
+    const startOfWeek = getLocalDateString(new Date(tempDate.setDate(tempDate.getDate() - tempDate.getDay())));
     const currentMonth = today.slice(0, 7);
 
     // Acumular por moneda para no mezclar dólares y soles
