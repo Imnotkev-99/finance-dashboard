@@ -1,0 +1,18 @@
+{
+  "name": "apex-finance-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard de finanzas personales con Supabase y Chart.js (vanilla JS, sin build).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint js",
+    "format": "prettier --write \"**/*.{js,css,html,json,md}\""
+  },
+  "devDependencies": {
+    "eslint": "^9.13.0",
+    "prettier": "^3.3.3",
+    "vitest": "^2.1.4"
+  }
+}
