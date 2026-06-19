@@ -6,6 +6,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_ANON_KEY = 'sb_publishable_616dQHKwWWKMRaXe7zcv3Q_L7Wd6Ek0';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // Utilidades puras compartidas (definidas en js/utils.js, expuestas en window.APEX)
+  const {
+    escapeHtml,
+    getLocalDateString,
+    getStartOfWeek,
+    aggregateByDate,
+    formatTotals,
+    validateExpenseInput,
+    isValidVoucherUrl
+  } = window.APEX;
+
   // Estado de sesión
   let currentUser = null;
   let isLoginMode = true; // true = Login, false = Register
@@ -15,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let userBudgets = { USD: 1000, PEN: 3000 };
   let expenseChartInstance = null;
   let categoryChartInstance = null;
+
+  // Paginación de la tabla: cuántas filas renderizar al DOM
+  const TABLE_PAGE_SIZE = 50;
+  let tableVisibleCount = TABLE_PAGE_SIZE;
 
   // Catálogo de monedas soportadas
   const CURRENCIES = {
@@ -36,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const mainDashboard = document.getElementById('main-dashboard');
   const authForm = document.getElementById('auth-form');
   const toggleAuthBtn = document.getElementById('toggle-auth');
-  const authTitle = document.getElementById('auth-title');
   const authSubmitBtn = document.getElementById('auth-submit-btn');
   const logoutBtn = document.getElementById('logout-btn');
   const userEmailDisplay = document.getElementById('user-email-display');
@@ -51,6 +65,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeModal = document.querySelector('.close-modal');
   const submitBtn = form.querySelector('button[type="submit"]');
   const uploadZone = document.getElementById('upload-zone');
+
+  // ============================================================
+  //  NOTIFICACIONES IN-PAGE (reemplazan alert())
+  // ============================================================
+
+  let toastContainer = null;
+  // Muestra un banner no bloqueante. type: 'error' | 'success' | 'info'
+  function showToast(message, type = 'info') {
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-container';
+      document.body.appendChild(toastContainer);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast--${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+
+    // Forzar reflow para activar la transición de entrada
+    requestAnimationFrame(() => toast.classList.add('toast--visible'));
+
+    const remove = () => {
+      toast.classList.remove('toast--visible');
+      toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    };
+    toast.addEventListener('click', remove);
+    setTimeout(remove, type === 'error' ? 6000 : 4000);
+  }
 
   // ============================================================
   //  AYUDANTES DE ANIMACIÓN Y TRANSICIONES
@@ -164,13 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Registro
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Registro exitoso. Si Supabase requiere confirmación, revisa tu correo. Si no, ya puedes iniciar sesión.');
+        showToast('Registro exitoso. Si Supabase requiere confirmación, revisa tu correo. Si no, ya puedes iniciar sesión.', 'success');
         isLoginMode = false;
         // Simular click para volver al login con la animación
         toggleAuthBtn.click();
       }
     } catch (error) {
-      alert('Error de autenticación: ' + error.message);
+      showToast('Error de autenticación: ' + error.message, 'error');
     } finally {
       authSubmitBtn.disabled = false;
       authSubmitBtn.textContent = isLoginMode ? 'Entrar' : 'Registrarse';
@@ -273,18 +316,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initDashboard() {
     initDateAndTime();
-    await fetchBudgets();
-    await fetchExpenses();
+    // Son consultas independientes: cargarlas en paralelo reduce la latencia inicial.
+    await Promise.all([fetchBudgets(), fetchExpenses()]);
   }
 
   function initDateAndTime() {
     const now = new Date();
     document.getElementById('date').value = getLocalDateString(now);
     document.getElementById('time').value = now.toTimeString().slice(0, 5);
-  }
-
-  function getLocalDateString(d = new Date()) {
-    return d.toLocaleDateString('sv');
   }
 
   async function fetchBudgets() {
@@ -357,7 +396,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .from('expenses')
       .select('*')
       .order('date', { ascending: false })
-      .order('time', { ascending: false });
+      .order('time', { ascending: false })
+      .limit(1000);
 
     if (error) {
       console.error('Error fetching data:', error);
@@ -366,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     expenses = data;
+    tableVisibleCount = TABLE_PAGE_SIZE;
     updateUI();
   }
 
@@ -380,6 +421,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const date = document.getElementById('date').value;
     const time = document.getElementById('time').value;
     const file = voucherInput.files[0];
+
+    // Validación en cliente antes de tocar la red
+    const { valid, error: validationError } = validateExpenseInput({ concept, amount });
+    if (!valid) {
+      showToast(validationError, 'error');
+      return;
+    }
 
     submitBtn.textContent = 'Procesando en la Nube... ⚡';
     submitBtn.disabled = true;
@@ -449,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
       console.error('Error procesando el gasto:', error);
-      alert('Fallo al guardar: ' + error.message);
+      showToast('Fallo al guardar: ' + error.message, 'error');
     } finally {
       submitBtn.textContent = 'Guardar Registro';
       submitBtn.disabled = false;
@@ -463,8 +511,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewImgBtn = e.target.closest('.view-img-btn');
     if (viewImgBtn) {
       const imgData = viewImgBtn.getAttribute('data-img');
-      modalImg.src = imgData;
-      modal.classList.remove('hidden');
+      // Sólo abrir URLs https del dominio de Supabase (anti URL injection)
+      if (isValidVoucherUrl(imgData, SUPABASE_URL)) {
+        modalImg.src = imgData;
+        modal.classList.remove('hidden');
+      } else {
+        showToast('No se pudo mostrar el voucher: URL no válida.', 'error');
+      }
     }
 
     // Eliminar Registro
@@ -483,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
           .eq('id', id);
 
         if (error) {
-          alert('Error al borrar: ' + error.message);
+          showToast('Error al borrar: ' + error.message, 'error');
           updateUI();
         } else {
           // Buscar el gasto localmente
@@ -544,7 +597,9 @@ document.addEventListener('DOMContentLoaded', () => {
       </svg>
     `;
 
-    expenses.forEach((exp, i) => {
+    // Renderizar sólo las filas visibles (los gastos ya vienen ordenados, recientes primero)
+    const visible = expenses.slice(0, tableVisibleCount);
+    visible.forEach((exp, i) => {
       const cur = CURRENCIES[exp.currency] || CURRENCIES.USD;
       const tr = document.createElement('tr');
       tr.className = 'row-anim';
@@ -554,32 +609,49 @@ document.addEventListener('DOMContentLoaded', () => {
       const catLabel = exp.category || 'Otros';
 
       tr.innerHTML = `
-                <td>${exp.date} <br><small style="color: var(--text-faint)">${exp.time}</small></td>
+                <td>${escapeHtml(exp.date)} <br><small style="color: var(--text-faint)">${escapeHtml(exp.time)}</small></td>
                 <td style="font-weight: 500;">
-                  ${exp.concept} <br>
-                  <span class="category-tag-mini">${catEmoji} ${catLabel}</span>
+                  ${escapeHtml(exp.concept)} <br>
+                  <span class="category-tag-mini">${catEmoji} ${escapeHtml(catLabel)}</span>
                 </td>
                 <td style="color: var(--accent-bright); font-weight: 600;">${cur.symbol}${parseFloat(exp.amount).toFixed(2)}</td>
-                <td><span class="currency-tag">${cur.label}</span></td>
+                <td><span class="currency-tag">${escapeHtml(cur.label)}</span></td>
                 <td>
                     ${exp.image_url
-          ? `<button class="view-img-btn" data-img="${exp.image_url}">Ver Voucher</button>`
+          ? `<button class="view-img-btn" data-img="${escapeHtml(exp.image_url)}">Ver Voucher</button>`
           : `<span class="no-voucher">Sin voucher</span>`}
                 </td>
                 <td>
-                    <button class="delete-btn" data-id="${exp.id}" title="Eliminar registro">${deleteIcon}</button>
+                    <button class="delete-btn" data-id="${escapeHtml(String(exp.id))}" title="Eliminar registro" aria-label="Eliminar registro">${deleteIcon}</button>
                 </td>
             `;
       tableBody.appendChild(tr);
     });
+
+    // Fila "Ver más" si quedan gastos por mostrar
+    if (expenses.length > tableVisibleCount) {
+      const restantes = expenses.length - tableVisibleCount;
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      td.style.cssText = 'text-align:center; padding: 16px 0;';
+      const btn = document.createElement('button');
+      btn.className = 'load-more-btn';
+      btn.textContent = `Ver más (${restantes} restantes)`;
+      btn.addEventListener('click', () => {
+        tableVisibleCount += TABLE_PAGE_SIZE;
+        renderTable();
+      });
+      td.appendChild(btn);
+      tr.appendChild(td);
+      tableBody.appendChild(tr);
+    }
   }
 
   function calculateKPIs() {
     const now = new Date();
     const today = getLocalDateString(now);
-    
-    const tempDate = new Date(now);
-    const startOfWeek = getLocalDateString(new Date(tempDate.setDate(tempDate.getDate() - tempDate.getDay())));
+    const startOfWeek = getStartOfWeek(now);
     const currentMonth = today.slice(0, 7);
 
     // Acumular por moneda para no mezclar dólares y soles
@@ -599,21 +671,13 @@ document.addEventListener('DOMContentLoaded', () => {
     animateTotals('monthly-total', monthly);
   }
 
-  // Convierte { USD, PEN } en texto, mostrando sólo las monedas con monto
-  function formatTotals(totals) {
-    const parts = Object.keys(totals)
-      .filter(code => totals[code] > 0)
-      .map(code => `${CURRENCIES[code].symbol}${totals[code].toFixed(2)}`);
-    return parts.length ? parts.join('  ·  ') : '$0.00';
-  }
-
   // Anima de 0 al valor (count-up)
   function animateTotals(elId, totals) {
     const el = document.getElementById(elId);
     if (!el) return;
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) { el.innerText = formatTotals(totals); return; }
+    if (reduce) { el.innerText = formatTotals(totals, CURRENCIES); return; }
 
     const duration = 900;
     const start = performance.now();
@@ -624,135 +688,116 @@ document.addEventListener('DOMContentLoaded', () => {
       const e = ease(p);
       const interp = {};
       Object.keys(totals).forEach(code => { interp[code] = totals[code] * e; });
-      el.innerText = formatTotals(interp);
+      el.innerText = formatTotals(interp, CURRENCIES);
       if (p < 1) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
+  }
+
+  // Construye etiquetas y datasets del gráfico de línea a partir de los gastos del mes.
+  function buildChartDatasets(ctx) {
+    const currentMonth = getLocalDateString().slice(0, 7);
+    const byCurrency = aggregateByDate(expenses, CURRENCIES, currentMonth);
+    const aggregatedUSD = byCurrency.USD;
+    const aggregatedPEN = byCurrency.PEN;
+
+    // Lista consolidada y ordenada de todas las fechas con datos
+    const allDates = Array.from(new Set([...Object.keys(aggregatedUSD), ...Object.keys(aggregatedPEN)])).sort();
+
+    // Relleno en gradiente esmeralda (USD) y azul (PEN)
+    const fillUSD = ctx.createLinearGradient(0, 0, 0, 260);
+    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
+    fillUSD.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    const fillPEN = ctx.createLinearGradient(0, 0, 0, 260);
+    fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+    fillPEN.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+    const pointBase = {
+      borderWidth: 2,
+      fill: true,
+      tension: 0.35,
+      pointBackgroundColor: '#121318',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointHoverBorderWidth: 3
+    };
+
+    return {
+      allDates,
+      labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día
+      datasets: [
+        { label: 'Dólares ($)', data: allDates.map(d => aggregatedUSD[d] || 0), borderColor: '#10b981', backgroundColor: fillUSD, pointBorderColor: '#10b981', ...pointBase },
+        { label: 'Soles (S/)', data: allDates.map(d => aggregatedPEN[d] || 0), borderColor: '#3b82f6', backgroundColor: fillPEN, pointBorderColor: '#3b82f6', ...pointBase }
+      ]
+    };
+  }
+
+  // Opciones de Chart.js para el gráfico de línea. `allDates` se usa en los tooltips.
+  function chartOptions(allDates, reduce) {
+    return {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            boxWidth: 10,
+            font: { size: 12, family: "'Inter', sans-serif", weight: '500' },
+            color: '#9da3ae'
+          }
+        },
+        tooltip: {
+          backgroundColor: '#16171d',
+          titleColor: '#ffffff',
+          bodyColor: '#f5f6f8',
+          padding: 12,
+          cornerRadius: 10,
+          displayColors: true,
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+          borderWidth: 1,
+          callbacks: {
+            title: (tooltipItems) => `Día: ${allDates[tooltipItems[0].dataIndex]}`,
+            label: (context) => {
+              const symbol = context.datasetIndex === 0 ? '$' : 'S/';
+              return `${context.dataset.label}: ${symbol}${context.raw.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+          ticks: { color: '#9da3ae', font: { size: 11 } }
+        },
+        x: {
+          grid: { display: false, drawBorder: false },
+          ticks: { color: '#9da3ae', font: { size: 11 } }
+        }
+      }
+    };
   }
 
   function renderChart() {
     const canvas = document.getElementById('expenseChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const currentMonth = getLocalDateString().slice(0, 7);
-    const monthData = expenses.filter(exp => exp.date.startsWith(currentMonth));
 
-    // Agregar de forma separada por moneda
-    const aggregatedUSD = {};
-    const aggregatedPEN = {};
-
-    monthData.forEach(exp => {
-      const amt = parseFloat(exp.amount);
-      if (exp.currency === 'PEN') {
-        aggregatedPEN[exp.date] = (aggregatedPEN[exp.date] || 0) + amt;
-      } else {
-        aggregatedUSD[exp.date] = (aggregatedUSD[exp.date] || 0) + amt;
-      }
-    });
-
-    // Obtener lista consolidada de todas las fechas que tienen datos (ordenada)
-    const allDates = Array.from(new Set([...Object.keys(aggregatedUSD), ...Object.keys(aggregatedPEN)])).sort();
-
-    const usdPoints = allDates.map(date => aggregatedUSD[date] || 0);
-    const penPoints = allDates.map(date => aggregatedPEN[date] || 0);
+    const { allDates, labels, datasets } = buildChartDatasets(ctx);
 
     if (expenseChartInstance) {
       expenseChartInstance.destroy();
     }
 
-    // Relleno en gradiente esmeralda (USD)
-    const fillUSD = ctx.createLinearGradient(0, 0, 0, 260);
-    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
-    fillUSD.addColorStop(1, 'rgba(16, 185, 129, 0)');
-
-    // Relleno en gradiente azul (PEN)
-    const fillPEN = ctx.createLinearGradient(0, 0, 0, 260);
-    fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
-    fillPEN.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     expenseChartInstance = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día
-        datasets: [
-          {
-            label: 'Dólares ($)',
-            data: usdPoints,
-            borderColor: '#10b981',
-            backgroundColor: fillUSD,
-            borderWidth: 2,
-            fill: true,
-            tension: 0.35,
-            pointBackgroundColor: '#121318',
-            pointBorderColor: '#10b981',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointHoverBorderWidth: 3
-          },
-          {
-            label: 'Soles (S/)',
-            data: penPoints,
-            borderColor: '#3b82f6',
-            backgroundColor: fillPEN,
-            borderWidth: 2,
-            fill: true,
-            tension: 0.35,
-            pointBackgroundColor: '#121318',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointHoverBorderWidth: 3
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
-        interaction: { intersect: false, mode: 'index' },
-        plugins: {
-          legend: { 
-            display: true,
-            position: 'top',
-            labels: {
-              boxWidth: 10,
-              font: { size: 12, family: "'Inter', sans-serif", weight: '500' },
-              color: '#9da3ae'
-            }
-          },
-          tooltip: {
-            backgroundColor: '#16171d',
-            titleColor: '#ffffff',
-            bodyColor: '#f5f6f8',
-            padding: 12,
-            cornerRadius: 10,
-            displayColors: true,
-            borderColor: 'rgba(255, 255, 255, 0.08)',
-            borderWidth: 1,
-            callbacks: {
-              title: (tooltipItems) => `Día: ${allDates[tooltipItems[0].dataIndex]}`,
-              label: (context) => {
-                const symbol = context.datasetIndex === 0 ? '$' : 'S/';
-                return `${context.dataset.label}: ${symbol}${context.raw.toFixed(2)}`;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
-            ticks: { color: '#9da3ae', font: { size: 11 } }
-          },
-          x: {
-            grid: { display: false, drawBorder: false },
-            ticks: { color: '#9da3ae', font: { size: 11 } }
-          }
-        }
-      }
+      data: { labels, datasets },
+      options: chartOptions(allDates, reduce)
     });
   }
 
@@ -907,7 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBudgetUI();
       } catch (err) {
         console.error('Error saving budgets:', err);
-        alert('Fallo al guardar límites: ' + err.message);
+        showToast('Fallo al guardar límites: ' + err.message, 'error');
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerText = 'Guardar Límites';

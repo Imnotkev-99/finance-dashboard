@@ -8,7 +8,7 @@
   --border-focus: rgba(16, 185, 129, 0.35);
   --text: #f3f4f6;
   --text-muted: #9ca3af;
-  --text-faint: #4b5563;
+  --text-faint: #808792; /* WCAG AA (~5.5:1) sobre --bg, manteniéndose bajo --text-muted */
 
   /* Color de marca principal (Esmeralda / Teal) */
   --accent: #10b981;
@@ -707,7 +707,8 @@ td {
 }
 
 /* Botón Ver Voucher */
-.view-img-btn {
+.view-img-btn,
+.load-more-btn {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-strong);
   color: var(--text-muted);
@@ -720,14 +721,16 @@ td {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .view-img-btn:hover {
+  .view-img-btn:hover,
+  .load-more-btn:hover {
     border-color: var(--accent-bright);
     color: var(--text);
     background-color: var(--accent-soft);
   }
 }
 
-.view-img-btn:active {
+.view-img-btn:active,
+.load-more-btn:active {
   transform: scale(0.95);
 }
 
@@ -1299,4 +1302,51 @@ td {
   justify-content: space-between;
   font-size: 11px;
   color: var(--text-faint);
+}
+
+/* ===== Notificaciones in-page (toasts) ===== */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 40px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+.toast--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.toast--error {
+  border-left: 3px solid var(--danger);
+}
+.toast--success {
+  border-left: 3px solid var(--accent-bright);
+}
+.toast--info {
+  border-left: 3px solid var(--text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: opacity 150ms linear;
+    transform: none;
+  }
 }
