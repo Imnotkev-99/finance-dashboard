@@ -173,3 +173,13 @@ create policy "budgets_manage_own"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+
+-- ============================================================
+--  5) Recargar el caché de esquema de PostgREST
+-- ============================================================
+--  Tras añadir columnas (p. ej. `category`), la API REST de Supabase puede
+--  seguir usando un esquema cacheado y devolver:
+--    "Could not find the 'category' column of 'expenses' in the schema cache"
+--  Este NOTIFY fuerza la recarga inmediata del esquema.
+notify pgrst, 'reload schema';
+
