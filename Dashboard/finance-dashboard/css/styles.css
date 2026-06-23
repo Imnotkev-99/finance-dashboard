@@ -53,13 +53,17 @@ html {
   background-color: var(--bg); /* fallback bajo el video de fondo */
   overflow-x: hidden; /* recorta el desbordamiento del #bg-video fijo con scale(1.25);
                          sin esto el viewport se ensancha en móvil y descentra el login */
+  overscroll-behavior: none; /* elimina el rebote (bounce) de iOS que dejaba ver
+                                franjas oscuras arriba/abajo al hacer scroll */
 }
 
 body {
   background-color: transparent; /* deja ver el video de fondo (#bg-video) */
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -945,6 +949,7 @@ td {
   position: fixed;
   inset: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1126,7 +1131,13 @@ td {
     position: static;
     flex-direction: row;
     align-items: center;
-    padding: 14px 20px;
+    /* Respeta el notch/status bar con viewport-fit=cover */
+    padding: max(14px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left));
+  }
+
+  .main-content {
+    /* El contenido inferior no queda bajo el home indicator */
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
   }
 
   .logo h2 {
