@@ -29,6 +29,18 @@ export default [
     }
   },
   {
+    files: ['js/parallax.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: browserGlobals
+    },
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-undef': 'error'
+    }
+  },
+  {
     files: ['js/utils.js'],
     languageOptions: {
       ecmaVersion: 2022,

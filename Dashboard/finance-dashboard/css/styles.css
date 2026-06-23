@@ -1,29 +1,29 @@
 :root {
   /* Paleta de colores - Dark Theme Premium */
-  --bg: #07080b;
-  --surface: #0e0f14;
-  --surface-hover: #16171d;
+  --bg: #0b0709; /* oscuro con matiz rojizo, acorde al video */
+  --surface: #14100f;
+  --surface-hover: #1d1715;
   --border: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.1);
-  --border-focus: rgba(16, 185, 129, 0.35);
-  --text: #f3f4f6;
-  --text-muted: #9ca3af;
-  --text-faint: #808792; /* WCAG AA (~5.5:1) sobre --bg, manteniéndose bajo --text-muted */
+  --border-focus: rgba(239, 68, 68, 0.35);
+  --text: #f5f3f4;
+  --text-muted: #a8a0a2;
+  --text-faint: #8a8284; /* WCAG AA sobre --bg, manteniéndose bajo --text-muted */
 
-  /* Color de marca principal (Esmeralda / Teal) */
-  --accent: #10b981;
-  --accent-bright: #34d399;
-  --accent-deep: #065f46;
-  --accent-soft: rgba(16, 185, 129, 0.06);
-  --accent-grad: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  /* Color de marca principal (Carmesí / Naranja) */
+  --accent: #ef4444;
+  --accent-bright: #fb7185;
+  --accent-deep: #7f1d1d;
+  --accent-soft: rgba(239, 68, 68, 0.06);
+  --accent-grad: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
 
   /* Colores semánticos por KPI */
   --kpi-day: #60a5fa;
   --kpi-day-soft: rgba(96, 165, 250, 0.06);
   --kpi-week: #fbbf24;
   --kpi-week-soft: rgba(251, 191, 36, 0.06);
-  --kpi-month: #34d399;
-  --kpi-month-soft: rgba(52, 211, 153, 0.06);
+  --kpi-month: #fb7185;
+  --kpi-month-soft: rgba(251, 113, 133, 0.06);
 
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.06);
@@ -39,7 +39,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-accent: 0 8px 30px rgba(16, 185, 129, 0.15);
+  --shadow-accent: 0 8px 30px rgba(239, 68, 68, 0.15);
 }
 
 * {
@@ -49,8 +49,12 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+html {
+  background-color: var(--bg); /* fallback bajo el video de fondo */
+}
+
 body {
-  background-color: var(--bg);
+  background-color: transparent; /* deja ver el video de fondo (#bg-video) */
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -66,9 +70,9 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(600px circle at 80% 0px, rgba(16, 185, 129, 0.07), transparent 70%),
-    radial-gradient(500px circle at 10% 90%, rgba(6, 182, 212, 0.05), transparent 70%),
-    radial-gradient(800px circle at 50% 50%, rgba(99, 102, 241, 0.02), transparent 85%);
+    radial-gradient(600px circle at 80% 0px, rgba(239, 68, 68, 0.07), transparent 70%),
+    radial-gradient(500px circle at 10% 90%, rgba(249, 115, 22, 0.05), transparent 70%),
+    radial-gradient(800px circle at 50% 50%, rgba(251, 113, 133, 0.02), transparent 85%);
 }
 
 .dashboard-container {
@@ -103,7 +107,9 @@ body::before {
    ============================================================ */
 .sidebar {
   width: 252px;
-  background: var(--surface);
+  background: rgba(14, 15, 20, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--border);
   padding: 28px 18px;
   display: flex;
@@ -267,7 +273,7 @@ h1 {
   color: var(--accent-bright);
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.12);
 }
 
 .live-chip i {
@@ -275,7 +281,7 @@ h1 {
   height: 6px;
   border-radius: 50%;
   background: var(--accent-bright);
-  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.6);
   animation: pulseDot 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
@@ -342,7 +348,7 @@ h1 {
 @media (hover: hover) and (pointer: fine) {
   .kpi--daily:hover { border-color: rgba(96, 165, 250, 0.25); }
   .kpi--weekly:hover { border-color: rgba(251, 191, 36, 0.25); }
-  .kpi--monthly:hover { border-color: rgba(52, 211, 153, 0.25); }
+  .kpi--monthly:hover { border-color: rgba(251, 113, 133, 0.25); }
 
   .kpi:hover .kpi__icon {
     transform: scale(1.06);
@@ -470,7 +476,7 @@ input:focus,
 select:focus {
   border-color: var(--accent-bright);
   background-color: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
 }
 
 select {
@@ -548,7 +554,7 @@ select option {
 
 .file-upload-zone.has-file {
   border-color: var(--accent);
-  background-color: rgba(16, 185, 129, 0.03);
+  background-color: rgba(239, 68, 68, 0.03);
 }
 
 .file-upload-zone .file-input {
@@ -647,13 +653,70 @@ select option {
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 36px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 12px 36px rgba(239, 68, 68, 0.3);
     filter: brightness(1.06);
   }
 }
 
 .btn-primary:active {
   transform: translateY(0) scale(0.97);
+}
+
+/* ---- Divisor "o continúa con" + botón de Google ---- */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.btn-google__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-google:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.btn-google:active {
+  transform: scale(0.98);
+}
+
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ============================================================
@@ -844,6 +907,25 @@ td {
   transform: scale(0.95);
 }
 
+/* Tarjeta glass del modal: el padding crea la zona donde vive el
+   botón de cerrar (×) en la esquina, sin solaparse con el contenido. */
+.modal-box {
+  position: relative;
+  padding: 28px 32px 32px;
+  background: rgba(14, 15, 20, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Refuerzo: evita que el título/subtítulo lleguen hasta el botón ×. */
+.modal-box h3,
+.modal-box .subtitle {
+  padding-right: 40px;
+}
+
 /* ============================================================
    Auth Screen (Login / Registro Glassmorphic)
    ============================================================ */
@@ -854,7 +936,7 @@ td {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--bg);
+  background: transparent; /* deja ver el video de fondo en el login */
   overflow: hidden;
   z-index: 4000;
 }
@@ -874,7 +956,7 @@ td {
   height: 480px;
   top: -100px;
   right: -80px;
-  background: radial-gradient(circle, #10b981, transparent 70%);
+  background: radial-gradient(circle, #ef4444, transparent 70%);
 }
 
 .auth-blob--2 {
@@ -882,7 +964,7 @@ td {
   height: 440px;
   bottom: -120px;
   left: -80px;
-  background: radial-gradient(circle, #06b6d4, transparent 70%);
+  background: radial-gradient(circle, #f97316, transparent 70%);
   animation-delay: -8s;
 }
 
@@ -1003,9 +1085,9 @@ td {
 }
 
 @keyframes pulseDot {
-  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
-  70%  { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.55); }
+  70%  { box-shadow: 0 0 0 7px rgba(251, 113, 133, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0); }
 }
 
 @keyframes blobFloat {
@@ -1287,7 +1369,7 @@ td {
 .budget-progress {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
+  background: linear-gradient(90deg, #ef4444, #f97316);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
 }
@@ -1348,5 +1430,40 @@ td {
   .toast {
     transition: opacity 150ms linear;
     transform: none;
+  }
+}
+
+/* ============================================================
+   Fondo de video con parallax (global: login + dashboard)
+   ============================================================ */
+.bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  transform: scale(1.25); /* margen ~12.5% por lado para el parallax */
+  will-change: transform;
+  pointer-events: none;
+}
+
+.bg-video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* oscurece para mantener legibilidad de tablas/gráficos */
+  background: linear-gradient(
+    to bottom,
+    rgba(7, 8, 11, 0.55),
+    rgba(7, 8, 11, 0.7) 60%,
+    rgba(7, 8, 11, 0.82)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-video {
+    transform: scale(1.25); /* sin parallax JS: solo zoom estático */
   }
 }

@@ -175,6 +175,21 @@ create policy "budgets_manage_own"
 
 
 -- ============================================================
+--  4.1) GRANTs para la API (rol `authenticated`)
+-- ============================================================
+--  PostgREST entra con los roles `anon` / `authenticated`. RLS filtra QUÉ
+--  filas se ven, pero primero hace falta GRANT para acceder a la TABLA; sin
+--  esto la API devuelve: "permission denied for table budgets".
+--
+--  Las tablas creadas desde la UI de Supabase reciben estos GRANTs
+--  automáticamente; las creadas por SQL (como `budgets`) NO, por eso hay que
+--  otorgarlos explícitamente aquí. RLS sigue protegiendo cada fila.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.expenses to authenticated;
+grant select, insert, update, delete on public.budgets  to authenticated;
+
+
+-- ============================================================
 --  5) Recargar el caché de esquema de PostgREST
 -- ============================================================
 --  Tras añadir columnas (p. ej. `category`), la API REST de Supabase puede

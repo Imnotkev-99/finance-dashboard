@@ -220,6 +220,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Iniciar sesión / registrarse con Google (OAuth)
+  const googleSignInBtn = document.getElementById('google-signin-btn');
+  if (googleSignInBtn) {
+    googleSignInBtn.addEventListener('click', async () => {
+      googleSignInBtn.disabled = true;
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin }
+        });
+        // En éxito, el navegador redirige a Google; al volver,
+        // onAuthStateChange (SIGNED_IN) muestra el dashboard.
+        if (error) throw error;
+      } catch (error) {
+        showToast('Error al entrar con Google: ' + error.message, 'error');
+        googleSignInBtn.disabled = false;
+      }
+    });
+  }
+
   // Escuchar cambios en la sesión (Login/Logout)
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
@@ -704,10 +724,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lista consolidada y ordenada de todas las fechas con datos
     const allDates = Array.from(new Set([...Object.keys(aggregatedUSD), ...Object.keys(aggregatedPEN)])).sort();
 
-    // Relleno en gradiente esmeralda (USD) y azul (PEN)
+    // Relleno en gradiente carmesí (USD) y azul (PEN)
     const fillUSD = ctx.createLinearGradient(0, 0, 0, 260);
-    fillUSD.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
-    fillUSD.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    fillUSD.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
+    fillUSD.addColorStop(1, 'rgba(239, 68, 68, 0)');
     const fillPEN = ctx.createLinearGradient(0, 0, 0, 260);
     fillPEN.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
     fillPEN.addColorStop(1, 'rgba(59, 130, 246, 0)');
@@ -727,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
       allDates,
       labels: allDates.map(date => date.slice(8, 10)), // Mostrar solo el día
       datasets: [
-        { label: 'Dólares ($)', data: allDates.map(d => aggregatedUSD[d] || 0), borderColor: '#10b981', backgroundColor: fillUSD, pointBorderColor: '#10b981', ...pointBase },
+        { label: 'Dólares ($)', data: allDates.map(d => aggregatedUSD[d] || 0), borderColor: '#ef4444', backgroundColor: fillUSD, pointBorderColor: '#ef4444', ...pointBase },
         { label: 'Soles (S/)', data: allDates.map(d => aggregatedPEN[d] || 0), borderColor: '#3b82f6', backgroundColor: fillPEN, pointBorderColor: '#3b82f6', ...pointBase }
       ]
     };
@@ -847,7 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataPoints = Object.values(aggregated);
 
     const colors = {
-      Alimentación: '#10b981',
+      Alimentación: '#fb7185',
       Transporte: '#3b82f6',
       Servicios: '#f59e0b',
       Suscripciones: '#8b5cf6',
