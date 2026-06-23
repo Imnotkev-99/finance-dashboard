@@ -85,8 +85,11 @@ body::before {
   position: relative;
   z-index: 1;
   display: flex;
-  min-height: 100vh;
-  min-height: 100dvh; /* evita saltos con la barra de URL en móvil */
+  /* App-shell en desktop: altura fija; el scroll vive dentro de .main-content
+     y el sidebar queda fijo a un lado. En móvil (<=900px) se cambia a altura
+     automática para que scrollee la ventana. */
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* Superficie de tarjeta base */
@@ -239,8 +242,9 @@ body::before {
    ============================================================ */
 .main-content {
   flex: 1;
+  min-width: 0; /* permite que el contenido (tablas anchas) encoja en el flex row */
   padding: 36px 44px 48px;
-  overflow-y: auto;
+  overflow-y: auto; /* scroller interno del app-shell en desktop */
 }
 
 header {
@@ -1123,6 +1127,13 @@ td {
 @media (max-width: 900px) {
   .dashboard-container {
     flex-direction: column;
+    /* En móvil scrollea la ventana (no el app-shell interno) */
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .main-content {
+    overflow-y: visible;
   }
 
   .sidebar {
