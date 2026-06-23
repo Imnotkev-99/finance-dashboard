@@ -256,15 +256,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Si Supabase/Google rebotó con un error en la URL (p. ej. el proveedor no
   // está habilitado), muéstralo en un toast en vez de quedarnos en silencio.
   (function handleOAuthRedirectError() {
-    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const query = new URLSearchParams(window.location.search);
+    const hash = new window.URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const query = new window.URLSearchParams(window.location.search);
     const desc = hash.get('error_description') || query.get('error_description');
     const code = hash.get('error') || query.get('error');
     if (desc || code) {
       const msg = decodeURIComponent(desc || code).replace(/\+/g, ' ');
       showToast('Google: ' + msg, 'error');
       // Limpia la URL para que el error no reaparezca al recargar.
-      history.replaceState(null, '', window.location.pathname);
+      window.history.replaceState(null, '', window.location.pathname);
     }
   })();
 
