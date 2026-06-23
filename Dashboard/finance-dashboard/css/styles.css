@@ -1527,9 +1527,13 @@ td {
    ============================================================ */
 .bg-video {
   position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh; /* viewport GRANDE: cubre notch/home indicator y la zona de
+                     las toolbars de iOS; con fixed+100% Safari usa el viewport
+                     pequeño y deja bandas oscuras arriba/abajo */
   object-fit: cover;
   z-index: -2;
   transform: scale(1.25); /* margen ~12.5% por lado para el parallax */
@@ -1539,7 +1543,12 @@ td {
 
 .bg-video-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh; /* mismo viewport grande que el video, para que el oscurecido
+                     cubra también las áreas seguras y no queden bandas */
   z-index: -1;
   pointer-events: none;
   /* oscurece para mantener legibilidad de tablas/gráficos */
