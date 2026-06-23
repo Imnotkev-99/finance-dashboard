@@ -51,6 +51,8 @@
 
 html {
   background-color: var(--bg); /* fallback bajo el video de fondo */
+  overflow-x: hidden; /* recorta el desbordamiento del #bg-video fijo con scale(1.25);
+                         sin esto el viewport se ensancha en móvil y descentra el login */
 }
 
 body {
@@ -80,6 +82,7 @@ body::before {
   z-index: 1;
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh; /* evita saltos con la barra de URL en móvil */
 }
 
 /* Superficie de tarjeta base */
@@ -372,6 +375,10 @@ h1 {
   height: 20px;
 }
 
+.kpi__body {
+  min-width: 0; /* permite que totales largos (USD · PEN) se ajusten sin desbordar */
+}
+
 .kpi__body h3 {
   font-size: 12px;
   color: var(--text-muted);
@@ -387,6 +394,7 @@ h1 {
   color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1.2;
+  overflow-wrap: anywhere; /* totales largos hacen wrap en lugar de cortarse */
 }
 
 .kpi--daily   { --kpi-color: var(--kpi-day);   --kpi-soft: var(--kpi-day-soft); }
@@ -724,6 +732,7 @@ select option {
    ============================================================ */
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* scroll con inercia en iOS */
 }
 
 table {
@@ -1298,6 +1307,29 @@ td {
   .budget-text {
     flex-wrap: wrap;
     gap: 4px 10px;
+  }
+
+  /* La tabla de 6 columnas hace scroll horizontal limpio en vez de aplastarse */
+  #transactions-table {
+    min-width: 560px;
+  }
+
+  /* Email largo no desborda el header */
+  #user-email-display {
+    max-width: 60vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Nombre de archivo no desborda la tarjeta del formulario */
+  .file-name-badge {
+    max-width: 100%;
+  }
+
+  /* Target táctil mínimo (~44px) en la navegación móvil */
+  .sidebar nav ul li a {
+    padding: 11px 12px;
   }
 }
 
