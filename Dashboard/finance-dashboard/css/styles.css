@@ -848,6 +848,7 @@ td {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 20px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 250ms var(--ease-out);
@@ -918,6 +919,8 @@ td {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
 }
 
 /* Refuerzo: evita que el título/subtítulo lleguen hasta el botón ×. */
@@ -1263,6 +1266,38 @@ td {
     top: 14px;
     right: 18px;
     font-size: 32px;
+  }
+
+  /* El header del gráfico ya no se aprieta: título arriba, pestañas abajo */
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .chart-tabs {
+    width: 100%;
+  }
+
+  .chart-tab {
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Modal con menos padding lateral para aprovechar el ancho del teléfono */
+  .modal-box {
+    padding: 24px 20px 24px;
+  }
+
+  .modal-box h3,
+  .modal-box .subtitle {
+    padding-right: 36px;
+  }
+
+  /* La fila de presupuesto (% y restante) puede envolver sin romperse */
+  .budget-text {
+    flex-wrap: wrap;
+    gap: 4px 10px;
   }
 }
 
