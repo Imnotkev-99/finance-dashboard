@@ -223,8 +223,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Iniciar sesión / registrarse con Google (OAuth)
   const googleSignInBtn = document.getElementById('google-signin-btn');
   if (googleSignInBtn) {
+    const googleLabel = googleSignInBtn.innerHTML;
+    const resetGoogleBtn = () => {
+      googleSignInBtn.disabled = false;
+      googleSignInBtn.innerHTML = googleLabel;
+    };
+
+    // Reactiva el botón al volver a la página (incluido el back/forward cache
+    // de Safari, donde el DOM se restaura con el botón aún deshabilitado).
+    window.addEventListener('pageshow', resetGoogleBtn);
+
     googleSignInBtn.addEventListener('click', async () => {
       googleSignInBtn.disabled = true;
+      googleSignInBtn.innerHTML = '<span>Conectando…</span>';
       try {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -233,12 +244,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // En éxito, el navegador redirige a Google; al volver,
         // onAuthStateChange (SIGNED_IN) muestra el dashboard.
         if (error) throw error;
+        // Red de seguridad: si no redirigió en unos segundos, reactiva.
+        setTimeout(resetGoogleBtn, 5000);
       } catch (error) {
         showToast('Error al entrar con Google: ' + error.message, 'error');
-        googleSignInBtn.disabled = false;
+        resetGoogleBtn();
       }
     });
   }
+
+  // Si Supabase/Google rebotó con un error en la URL (p. ej. el proveedor no
+  // está habilitado), muéstralo en un toast en vez de quedarnos en silencio.
+  (function handleOAuthRedirectError() {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const query = new URLSearchParams(window.location.search);
+    const desc = hash.get('error_description') || query.get('error_description');
+    const code = hash.get('error') || query.get('error');
+    if (desc || code) {
+      const msg = decodeURIComponent(desc || code).replace(/\+/g, ' ');
+      showToast('Google: ' + msg, 'error');
+      // Limpia la URL para que el error no reaparezca al recargar.
+      history.replaceState(null, '', window.location.pathname);
+    }
+  })();
 
   // Escuchar cambios en la sesión (Login/Logout)
   supabase.auth.onAuthStateChange((event, session) => {
