@@ -1467,8 +1467,8 @@ td {
 /* ===== Notificaciones in-page (toasts) ===== */
 #toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: max(20px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
   z-index: 1000;
   display: flex;
   flex-direction: column;
