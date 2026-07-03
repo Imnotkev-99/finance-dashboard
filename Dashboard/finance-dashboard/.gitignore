@@ -1,3 +1,11 @@
 .vercel
 .superpowers
 node_modules
+
+# Artefactos de Playwright
+test-results/
+playwright-report/
+
+# Tooling de skills (local)
+.agents/
+skills-lock.json

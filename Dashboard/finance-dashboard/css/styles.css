@@ -868,17 +868,22 @@ td {
   padding: 20px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 250ms var(--ease-out);
+  /* visibility transiciona en discreto: se mantiene visible durante el fade-out
+     y aparece de inmediato en el fade-in. Con sólo opacity:0 el modal "oculto"
+     seguía en el árbol de accesibilidad y sus campos eran alcanzables con Tab. */
+  transition: opacity 250ms var(--ease-out), visibility 250ms var(--ease-out);
 }
 
 .modal.hidden {
   display: flex !important; /* Sobrescribe display:none para permitir transiciones de CSS */
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
 .modal:not(.hidden) {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
