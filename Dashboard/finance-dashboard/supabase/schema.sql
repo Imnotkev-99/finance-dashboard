@@ -25,7 +25,7 @@ create table if not exists public.expenses (
   currency    text        not null default 'USD' check (currency in ('USD', 'PEN')),
   date        date        not null,
   time        time        not null,
-  image_url   text,                       -- URL pública del voucher (Storage). Opcional.
+  image_url   text,                       -- URL canónica del voucher (bucket privado; la app la firma al verlo). Opcional.
   created_at  timestamptz not null default now()
 );
 
@@ -64,32 +64,40 @@ begin
   end loop;
 end $$;
 
--- Recrea el set canónico (cada usuario sólo accede a lo suyo)
+-- Recrea el set canónico (cada usuario sólo accede a lo suyo).
+-- `(select auth.uid())` en vez de `auth.uid()`: se evalúa una sola vez por
+-- consulta y no por fila (advisor de performance `auth_rls_initplan`).
 create policy "expenses_select_own"
   on public.expenses for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create policy "expenses_insert_own"
   on public.expenses for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 create policy "expenses_update_own"
   on public.expenses for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 create policy "expenses_delete_own"
   on public.expenses for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 
 -- ============================================================
---  3) Storage: bucket `vouchers`
+--  3) Storage: bucket `vouchers` (PRIVADO)
 -- ============================================================
---  Crear el bucket SIEMPRE funciona en el SQL Editor:
-insert into storage.buckets (id, name, public)
-values ('vouchers', 'vouchers', true)
-on conflict (id) do nothing;
+--  Los vouchers son datos financieros sensibles: el bucket es PRIVADO y la
+--  app los muestra con URLs firmadas temporales (createSignedUrl).
+--  Además se limita el contenido a imágenes rasterizadas de máx 5MB
+--  (nada de SVG/HTML, que pueden ejecutar scripts al servirse).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('vouchers', 'vouchers', false, 5242880, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set public             = excluded.public,
+      file_size_limit    = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 -- ------------------------------------------------------------
 --  Políticas de Storage (idempotentes y a prueba de transacción)
@@ -103,28 +111,42 @@ on conflict (id) do nothing;
 --  Por eso van dentro de un bloque que CAPTURA el error de permisos:
 --  si no se pueden crear por SQL, el script continúa y tú las creas
 --  desde el panel: Storage → vouchers → Policies → New policy
---    • SELECT  · roles: public          · USING:      bucket_id = 'vouchers'
---    • INSERT  · roles: authenticated    · WITH CHECK: bucket_id = 'vouchers'
---    • DELETE  · roles: authenticated    · USING:      bucket_id = 'vouchers'
+--  (borra antes las políticas viejas del bucket, incluidas las de
+--  sufijo raro tipo "vouchers_auth_delete 183bix1_1"):
+--    • SELECT · authenticated · USING:      bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text
+--    • INSERT · authenticated · WITH CHECK: bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text
+--    • DELETE · authenticated · USING:      bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text
 -- ------------------------------------------------------------
 do $$
+declare
+  pol record;
 begin
-  drop policy if exists "vouchers_public_read" on storage.objects;
-  create policy "vouchers_public_read"
-    on storage.objects for select
-    using (bucket_id = 'vouchers');
+  -- Elimina TODAS las políticas previas del bucket (cualquier nombre que
+  -- empiece por "vouchers", incluidas las creadas desde el panel).
+  for pol in
+    select policyname
+    from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and policyname like 'vouchers%'
+  loop
+    execute format('drop policy %I on storage.objects', pol.policyname);
+  end loop;
 
-  drop policy if exists "vouchers_auth_insert" on storage.objects;
-  create policy "vouchers_auth_insert"
+  -- Cada usuario sólo ve/sube/borra archivos de SU carpeta (<user_id>/...)
+  create policy "vouchers_select_own"
+    on storage.objects for select
+    to authenticated
+    using (bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+  create policy "vouchers_insert_own"
     on storage.objects for insert
     to authenticated
-    with check (bucket_id = 'vouchers' and (storage.foldername(name))[1] = auth.uid()::text);
+    with check (bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
-  drop policy if exists "vouchers_auth_delete" on storage.objects;
-  create policy "vouchers_auth_delete"
+  create policy "vouchers_delete_own"
     on storage.objects for delete
     to authenticated
-    using (bucket_id = 'vouchers' and (storage.foldername(name))[1] = auth.uid()::text);
+    using (bucket_id = 'vouchers' and (storage.foldername(name))[1] = (select auth.uid())::text);
 exception
   when insufficient_privilege then
     raise notice 'No se pudieron crear las políticas de storage por SQL (must be owner). Créalas desde el panel: Storage → vouchers → Policies.';
@@ -170,12 +192,110 @@ end $$;
 create policy "budgets_manage_own"
   on public.budgets for all
   to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 
 -- ============================================================
---  4.1) GRANTs para la API (rol `authenticated`)
+--  4.2) Endurecimiento de expenses (mejoras 2026-07-03)
+-- ============================================================
+--  Espeja en el servidor las validaciones que el cliente hace en
+--  js/utils.js (validateExpenseInput): el cliente puede saltarse el JS,
+--  la base de datos no.
+alter table public.expenses drop constraint if exists expenses_category_check;
+alter table public.expenses
+  add constraint expenses_category_check
+  check (category in ('Alimentación', 'Transporte', 'Servicios', 'Suscripciones', 'Oficina', 'Otros'));
+
+alter table public.expenses drop constraint if exists expenses_concept_len_check;
+alter table public.expenses
+  add constraint expenses_concept_len_check
+  check (char_length(concept) between 1 and 200);
+
+alter table public.expenses drop constraint if exists expenses_amount_max_check;
+alter table public.expenses
+  add constraint expenses_amount_max_check
+  check (amount <= 1000000);
+
+-- Auditoría de cambios: updated_at se refresca solo en cada UPDATE.
+alter table public.expenses
+  add column if not exists updated_at timestamptz not null default now();
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists expenses_set_updated_at on public.expenses;
+create trigger expenses_set_updated_at
+  before update on public.expenses
+  for each row execute function public.set_updated_at();
+
+
+-- ============================================================
+--  4.3) RPC: dashboard_summary — KPIs calculados en SQL
+-- ============================================================
+--  Devuelve en una sola llamada los agregados que el dashboard necesita,
+--  exactos aunque haya millones de filas (el cliente ya no depende de
+--  traerse los gastos para sumar). Recibe las fechas del CLIENTE porque
+--  "hoy" y el inicio de semana dependen de su zona horaria, no de la del
+--  servidor (UTC).
+--
+--  SECURITY INVOKER (default): corre como el usuario autenticado, así que
+--  RLS aplica; el filtro explícito por user_id es defensa en profundidad.
+create or replace function public.dashboard_summary(p_today date, p_week_start date)
+returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  with mine as (
+    select date, currency, amount, category
+    from public.expenses
+    where user_id = (select auth.uid())
+  ),
+  month as (
+    select *
+    from mine
+    where date >= date_trunc('month', p_today)::date
+      and date <  (date_trunc('month', p_today) + interval '1 month')::date
+  )
+  select jsonb_build_object(
+    'daily', (
+      select coalesce(jsonb_object_agg(currency, total), '{}'::jsonb)
+      from (select currency, sum(amount) as total from mine where date = p_today group by currency) d
+    ),
+    'weekly', (
+      select coalesce(jsonb_object_agg(currency, total), '{}'::jsonb)
+      from (select currency, sum(amount) as total from mine where date between p_week_start and p_today group by currency) w
+    ),
+    'monthly', (
+      select coalesce(jsonb_object_agg(currency, total), '{}'::jsonb)
+      from (select currency, sum(amount) as total from month group by currency) m
+    ),
+    'by_date', (
+      select coalesce(jsonb_agg(jsonb_build_object('date', date, 'currency', currency, 'total', total) order by date), '[]'::jsonb)
+      from (select date, currency, sum(amount) as total from month group by date, currency) s
+    ),
+    'by_category', (
+      select coalesce(jsonb_agg(jsonb_build_object('category', category, 'currency', currency, 'total', total)), '[]'::jsonb)
+      from (select category, currency, sum(amount) as total from month group by category, currency) c
+    )
+  );
+$$;
+
+revoke execute on function public.dashboard_summary(date, date) from anon, public;
+grant execute on function public.dashboard_summary(date, date) to authenticated;
+
+
+-- ============================================================
+--  4.4) GRANTs para la API (rol `authenticated`)
 -- ============================================================
 --  PostgREST entra con los roles `anon` / `authenticated`. RLS filtra QUÉ
 --  filas se ven, pero primero hace falta GRANT para acceder a la TABLA; sin

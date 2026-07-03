@@ -1033,14 +1033,22 @@ td {
   color: var(--text-muted);
 }
 
-.auth-switch span {
+.auth-switch span,
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
   color: var(--accent-bright);
   font-weight: 600;
   cursor: pointer;
   transition: color 150ms var(--ease-out);
 }
 
-.auth-switch span:hover {
+.auth-switch span:hover,
+.link-button:hover,
+.link-button:focus-visible {
   color: #fff;
   text-decoration: underline;
 }
@@ -1563,5 +1571,302 @@ td {
 @media (prefers-reduced-motion: reduce) {
   .bg-video {
     transform: scale(1.25); /* sin parallax JS: solo zoom estático */
+  }
+}
+
+/* ============================================================
+   Mejoras 2026-07-03: toolbar, filtros, modales, moneda, skeleton
+   ============================================================ */
+
+/* --- Header: acciones (selector de moneda + perfil) --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.currency-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.currency-switch__btn {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 200ms var(--ease-out), background-color 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.currency-switch__btn.active {
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+
+.currency-switch__btn:active {
+  transform: scale(0.95);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .currency-switch__btn:not(.active):hover {
+    color: var(--text);
+  }
+}
+
+/* --- Historial: cabecera con export y toolbar de filtros --- */
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 200ms var(--ease-out), color 200ms var(--ease-out), background-color 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.ghost-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ghost-btn:hover {
+    border-color: var(--accent-bright);
+    color: var(--text);
+    background-color: var(--accent-soft);
+  }
+}
+
+.ghost-btn:active {
+  transform: scale(0.96);
+}
+
+.ghost-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 18px;
+}
+
+.toolbar-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+  color-scheme: dark; /* iconos nativos (date picker) en claro sobre fondo oscuro */
+}
+
+.toolbar-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.toolbar-input::placeholder {
+  color: var(--text-faint);
+}
+
+.toolbar-search {
+  flex: 1;
+  min-width: 170px;
+}
+
+.toolbar-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+}
+
+/* --- Acciones por fila (editar + borrar) --- */
+.row-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.edit-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 200ms var(--ease-out), color 200ms var(--ease-out), background-color 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .edit-btn:hover {
+    background: rgba(96, 165, 250, 0.06);
+    border-color: var(--kpi-day);
+    color: var(--kpi-day);
+  }
+}
+
+.edit-btn:active {
+  transform: scale(0.95);
+}
+
+/* --- Skeleton shimmer al cargar la tabla --- */
+.skeleton-row td {
+  padding: 16px 12px;
+}
+
+.skeleton-line {
+  display: inline-block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.05) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line {
+    animation: none;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* --- Empty state --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 44px 16px;
+}
+
+.empty-state__icon {
+  width: 44px;
+  height: 44px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.empty-state__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-state__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.empty-state__hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.empty-state .ghost-btn,
+.empty-state__cta {
+  margin-top: 14px;
+}
+
+.empty-state__cta {
+  width: auto;
+  padding: 10px 22px;
+}
+
+/* --- Diálogo de confirmación --- */
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btn-danger {
+  background: var(--danger);
+  border: 1px solid transparent;
+  color: #1b0808;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover {
+    filter: brightness(1.1);
+  }
+}
+
+.btn-danger:active {
+  transform: scale(0.96);
+}
+
+/* --- Responsive de las piezas nuevas --- */
+@media (max-width: 600px) {
+  .header-actions {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-dates {
+    justify-content: space-between;
+  }
+
+  .toolbar-dates .toolbar-input {
+    flex: 1;
   }
 }

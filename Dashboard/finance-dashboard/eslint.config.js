@@ -11,7 +11,8 @@ const browserGlobals = {
   performance: 'readonly',
   requestAnimationFrame: 'readonly',
   setTimeout: 'readonly',
-  confirm: 'readonly',
+  clearTimeout: 'readonly',
+  Blob: 'readonly',
   matchMedia: 'readonly'
 };
 

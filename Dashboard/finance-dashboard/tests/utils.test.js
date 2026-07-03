@@ -6,6 +6,9 @@ import {
   aggregateByDate,
   formatTotals,
   validateExpenseInput,
+  validateVoucherFile,
+  voucherPathFromUrl,
+  toCsv,
   isValidVoucherUrl
 } from '../js/utils.js';
 
@@ -103,6 +106,85 @@ describe('validateExpenseInput', () => {
 
   it('rechaza monto sobre el techo', () => {
     expect(validateExpenseInput({ concept: 'x', amount: 2_000_000 }).valid).toBe(false);
+  });
+});
+
+describe('toCsv', () => {
+  const cols = [
+    { key: 'date', label: 'Fecha' },
+    { key: 'concept', label: 'Concepto' },
+    { key: 'amount', label: 'Monto' }
+  ];
+
+  it('genera encabezado y filas separadas por CRLF', () => {
+    const csv = toCsv([{ date: '2026-07-01', concept: 'Café', amount: 4.5 }], cols);
+    expect(csv).toBe('Fecha,Concepto,Monto\r\n2026-07-01,Café,4.5');
+  });
+
+  it('escapa comas, comillas y saltos de línea', () => {
+    const csv = toCsv(
+      [{ date: '2026-07-01', concept: 'Almuerzo, con "socio"\nlínea 2', amount: 10 }],
+      cols
+    );
+    expect(csv.split('\r\n')[1]).toBe('2026-07-01,"Almuerzo, con ""socio""\nlínea 2",10');
+  });
+
+  it('maneja valores nulos y filas vacías', () => {
+    expect(toCsv([{ date: null, concept: undefined, amount: 0 }], cols)).toBe(
+      'Fecha,Concepto,Monto\r\n,,0'
+    );
+    expect(toCsv([], cols)).toBe('Fecha,Concepto,Monto');
+    expect(toCsv(null, cols)).toBe('Fecha,Concepto,Monto');
+  });
+});
+
+describe('validateVoucherFile', () => {
+  const file = (type, size) => ({ type, size, name: 'x' });
+
+  it('acepta imágenes rasterizadas dentro del límite', () => {
+    expect(validateVoucherFile(file('image/png', 1024)).valid).toBe(true);
+    expect(validateVoucherFile(file('image/jpeg', 4 * 1024 * 1024)).valid).toBe(true);
+    expect(validateVoucherFile(file('image/webp', 1)).valid).toBe(true);
+  });
+
+  it('rechaza tipos peligrosos o no soportados', () => {
+    expect(validateVoucherFile(file('image/svg+xml', 10)).valid).toBe(false);
+    expect(validateVoucherFile(file('text/html', 10)).valid).toBe(false);
+    expect(validateVoucherFile(file('application/pdf', 10)).valid).toBe(false);
+    expect(validateVoucherFile(file('', 10)).valid).toBe(false);
+  });
+
+  it('rechaza archivos de más de 5MB y entrada nula', () => {
+    expect(validateVoucherFile(file('image/png', 5 * 1024 * 1024 + 1)).valid).toBe(false);
+    expect(validateVoucherFile(null).valid).toBe(false);
+  });
+});
+
+describe('voucherPathFromUrl', () => {
+  const supa = 'https://lkndwsolpimmezdshgpx.supabase.co';
+
+  it('deriva el path desde una URL pública histórica', () => {
+    expect(
+      voucherPathFromUrl(`${supa}/storage/v1/object/public/vouchers/uid123/foto.png`)
+    ).toBe('uid123/foto.png');
+  });
+
+  it('deriva el path desde una URL firmada', () => {
+    expect(
+      voucherPathFromUrl(`${supa}/storage/v1/object/sign/vouchers/uid123/foto.png?token=abc`)
+    ).toBe('uid123/foto.png');
+  });
+
+  it('acepta un path directo guardado sin URL', () => {
+    expect(voucherPathFromUrl('uid123/foto.png')).toBe('uid123/foto.png');
+    expect(voucherPathFromUrl('vouchers/uid123/foto.png')).toBe('uid123/foto.png');
+  });
+
+  it('devuelve null para valores inválidos u otros buckets', () => {
+    expect(voucherPathFromUrl(null)).toBe(null);
+    expect(voucherPathFromUrl('')).toBe(null);
+    expect(voucherPathFromUrl(`${supa}/storage/v1/object/public/otro/uid/x.png`)).toBe(null);
+    expect(voucherPathFromUrl('https://evil.com/x.png')).toBe(null);
   });
 });
 

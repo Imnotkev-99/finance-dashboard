@@ -11,9 +11,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="css/styles.css?v=10">
+  <!-- Chart.js (versión fijada + SRI contra manipulación del CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+    integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+    crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="css/styles.css?v=11">
 </head>
 
 <body>
@@ -55,7 +57,7 @@
         </svg>
         <span>Google</span>
       </button>
-      <p class="auth-switch">¿No tienes cuenta? <span id="toggle-auth">Regístrate aquí</span></p>
+      <p class="auth-switch">¿No tienes cuenta? <button type="button" id="toggle-auth" class="link-button">Regístrate aquí</button></p>
     </div>
   </div>
 
@@ -129,9 +131,15 @@
           </div>
           <p class="header-subtitle">Control de vouchers y gastos operativos</p>
         </div>
-        <div class="user-profile">
-          <span id="user-email-display">Admin</span>
-          <div class="avatar avatar--sm">A</div>
+        <div class="header-actions">
+          <div class="currency-switch" role="group" aria-label="Moneda de los indicadores">
+            <button type="button" class="currency-switch__btn" data-currency="USD" aria-pressed="false">$ USD</button>
+            <button type="button" class="currency-switch__btn" data-currency="PEN" aria-pressed="false">S/ PEN</button>
+          </div>
+          <div class="user-profile">
+            <span id="user-email-display">Admin</span>
+            <div class="avatar avatar--sm">A</div>
+          </div>
         </div>
       </header>
 
@@ -266,9 +274,9 @@
         <section class="chart-section card">
           <div class="chart-header">
             <h2>Análisis Mensual</h2>
-            <div class="chart-tabs">
-              <button class="chart-tab active" data-tab="trend">📈 Evolución</button>
-              <button class="chart-tab" data-tab="categories">🍩 Categorías</button>
+            <div class="chart-tabs" role="tablist" aria-label="Tipo de gráfico">
+              <button class="chart-tab active" data-tab="trend" role="tab" aria-selected="true">📈 Evolución</button>
+              <button class="chart-tab" data-tab="categories" role="tab" aria-selected="false">🍩 Categorías</button>
             </div>
           </div>
           <div class="chart-container">
@@ -280,7 +288,42 @@
 
       <!-- History Table -->
       <section id="history-section" class="history-section card">
-        <h2>Historial de Transacciones</h2>
+        <div class="history-header">
+          <h2>Historial de Transacciones</h2>
+          <button type="button" id="export-csv-btn" class="ghost-btn" title="Exportar el historial filtrado a CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar CSV
+          </button>
+        </div>
+        <div class="table-toolbar">
+          <input type="search" id="filter-search" class="toolbar-input toolbar-search" placeholder="Buscar concepto…"
+            aria-label="Buscar por concepto">
+          <select id="filter-category" class="toolbar-input" aria-label="Filtrar por categoría">
+            <option value="">Todas las categorías</option>
+            <option value="Alimentación">🍔 Alimentación</option>
+            <option value="Transporte">🚗 Transporte</option>
+            <option value="Servicios">💡 Servicios</option>
+            <option value="Suscripciones">💻 Suscripciones</option>
+            <option value="Oficina">📦 Oficina</option>
+            <option value="Otros">🏷️ Otros</option>
+          </select>
+          <select id="filter-currency" class="toolbar-input" aria-label="Filtrar por moneda">
+            <option value="">Ambas monedas</option>
+            <option value="USD">Dólares ($)</option>
+            <option value="PEN">Soles (S/)</option>
+          </select>
+          <div class="toolbar-dates">
+            <input type="date" id="filter-from" class="toolbar-input" aria-label="Desde">
+            <span aria-hidden="true">–</span>
+            <input type="date" id="filter-to" class="toolbar-input" aria-label="Hasta">
+          </div>
+          <button type="button" id="clear-filters-btn" class="ghost-btn hidden">Limpiar filtros</button>
+        </div>
         <div class="table-container">
           <table id="transactions-table">
             <thead>
@@ -303,16 +346,80 @@
   </div>
 
   <!-- Modal for Image Preview -->
-  <div id="image-modal" class="modal hidden">
+  <div id="image-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Vista previa del voucher">
     <button class="close-modal" aria-label="Cerrar vista previa">&times;</button>
     <img class="modal-content" id="modal-image" alt="Vista previa del voucher de pago">
   </div>
 
+  <!-- Modal para editar un gasto existente -->
+  <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="modal-box glass" style="max-width: 460px; width: 90%; position: relative;">
+      <button type="button" class="close-edit-modal close-modal" aria-label="Cerrar edición">&times;</button>
+      <h3 id="edit-modal-title" style="margin-top: 0;">Editar Gasto</h3>
+      <form id="edit-form">
+        <div class="form-group">
+          <label for="edit-concept">Concepto</label>
+          <input type="text" id="edit-concept" required>
+        </div>
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="edit-category">Categoría</label>
+            <select id="edit-category" required>
+              <option value="Alimentación">🍔 Alimentación</option>
+              <option value="Transporte">🚗 Transporte</option>
+              <option value="Servicios">💡 Servicios</option>
+              <option value="Suscripciones">💻 Suscripciones</option>
+              <option value="Oficina">📦 Oficina</option>
+              <option value="Otros">🏷️ Otros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-currency">Moneda</label>
+            <select id="edit-currency" required>
+              <option value="USD">Dólares ($)</option>
+              <option value="PEN">Soles (S/)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="edit-amount">Monto</label>
+            <input type="number" id="edit-amount" step="0.01" min="0" required>
+          </div>
+        </div>
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="edit-date">Fecha</label>
+            <input type="date" id="edit-date" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-time">Hora</label>
+            <input type="time" id="edit-time" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="edit-save-btn">Guardar Cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Diálogo de confirmación (reemplaza a confirm()) -->
+  <div id="confirm-dialog" class="modal hidden" role="alertdialog" aria-modal="true"
+    aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <div class="modal-box glass confirm-box" style="max-width: 400px; width: 90%; position: relative;">
+      <h3 id="confirm-title" style="margin-top: 0;">¿Eliminar registro?</h3>
+      <p id="confirm-message" class="subtitle"></p>
+      <div class="confirm-actions">
+        <button type="button" id="confirm-cancel" class="ghost-btn">Cancelar</button>
+        <button type="button" id="confirm-accept" class="btn-danger">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal para configuración de presupuestos -->
-  <div id="budget-modal" class="modal hidden">
+  <div id="budget-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="budget-modal-title">
     <div class="modal-box glass" style="max-width: 400px; width: 90%; position: relative;">
       <button class="close-budget-modal close-modal" aria-label="Cerrar modal">&times;</button>
-      <h3 style="margin-top: 0;">Presupuesto Mensual</h3>
+      <h3 id="budget-modal-title" style="margin-top: 0;">Presupuesto Mensual</h3>
       <p class="subtitle" style="margin-bottom: 20px;">Establece los límites mensuales para controlar tus gastos</p>
       <form id="budget-form">
         <div class="form-group">
@@ -328,15 +435,15 @@
     </div>
   </div>
 
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase JS (versión fijada + SRI contra manipulación del CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"
+    integrity="sha384-3wY11tldQ5+yWqAvmTN4XtQvnjoTva0cV15O/O/O5NTtp0ivVopSzLOzsVXWZse9"
+    crossorigin="anonymous"></script>
   <!-- Utilidades puras: el módulo es diferido y se ejecuta antes de DOMContentLoaded,
-       por lo que window.APEX estará disponible cuando corra app.js -->
-  <script type="module">
-    import * as APEX from './js/utils.js';
-    window.APEX = APEX;
-  </script>
-  <script src="js/app.js?v=2"></script>
+       por lo que window.APEX estará disponible cuando corra app.js.
+       En archivo propio (no inline) para cumplir el CSP de vercel.json. -->
+  <script type="module" src="js/bootstrap.js"></script>
+  <script src="js/app.js?v=3"></script>
   <!-- Parallax del fondo de video (mouse + scroll) -->
   <script src="js/parallax.js"></script>
 </body>

@@ -73,6 +73,56 @@ export function validateExpenseInput({ concept, amount } = {}) {
   return { valid: true, error: null };
 }
 
+const MAX_VOUCHER_BYTES = 5 * 1024 * 1024; // 5MB, como promete la UI
+const ALLOWED_VOUCHER_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+// Valida el archivo de voucher antes de subirlo a Storage: sólo imágenes
+// rasterizadas (nada de SVG/HTML, que pueden ejecutar scripts) y máx 5MB.
+// Devuelve { valid: boolean, error: string|null }.
+export function validateVoucherFile(file) {
+  if (!file) {
+    return { valid: false, error: 'No se seleccionó ningún archivo.' };
+  }
+  if (!ALLOWED_VOUCHER_TYPES.includes(file.type)) {
+    return { valid: false, error: 'Formato no permitido. Usa PNG, JPG/JPEG o WebP.' };
+  }
+  if (file.size > MAX_VOUCHER_BYTES) {
+    return { valid: false, error: 'El archivo supera el máximo de 5MB.' };
+  }
+  return { valid: true, error: null };
+}
+
+// Extrae el path dentro del bucket `vouchers` a partir del valor guardado en
+// `image_url` (URL pública histórica, URL firmada, o un path directo).
+// Devuelve null si no se puede derivar un path.
+export function voucherPathFromUrl(value) {
+  const str = String(value ?? '').trim();
+  if (!str) return null;
+  const marker = '/storage/v1/object/';
+  const idx = str.indexOf(marker);
+  if (idx !== -1) {
+    // Formatos: .../object/public/vouchers/<path> o .../object/sign/vouchers/<path>?token=...
+    const rest = str.slice(idx + marker.length).replace(/^(public|sign|authenticated)\//, '');
+    if (!rest.startsWith('vouchers/')) return null;
+    return rest.slice('vouchers/'.length).split('?')[0] || null;
+  }
+  // Valor guardado como path directo (sin URL)
+  if (!str.includes('://')) return str.replace(/^vouchers\//, '') || null;
+  return null;
+}
+
+// Convierte filas en CSV (RFC 4180): escapa comillas, comas y saltos de línea.
+// `columns` es [{ key, label }] y define el orden y el encabezado.
+export function toCsv(rows, columns) {
+  const esc = (value) => {
+    const str = String(value ?? '');
+    return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const header = columns.map((c) => esc(c.label)).join(',');
+  const lines = (rows || []).map((row) => columns.map((c) => esc(row[c.key])).join(','));
+  return [header, ...lines].join('\r\n');
+}
+
 // Acepta sólo URLs https del dominio de Supabase del proyecto (anti URL injection en el modal).
 export function isValidVoucherUrl(url, supabaseUrl) {
   try {
