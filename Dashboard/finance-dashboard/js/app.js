@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let expenses = []; // filas CARGADAS de la tabla (páginas traídas del servidor)
   let summary = null; // agregados exactos del RPC dashboard_summary
   let userBudgets = { USD: 1000, PEN: 3000 };
+  let categoryBudgets = { USD: {}, PEN: {} };
+  let savingsGoals = [];
   let expenseChartInstance = null;
   let categoryChartInstance = null;
   let chartAllDates = []; // fechas completas del line chart (para tooltips)
@@ -86,6 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const editModal = document.getElementById('edit-modal');
   const editForm = document.getElementById('edit-form');
   const confirmModal = document.getElementById('confirm-dialog');
+  const savingsModal = document.getElementById('savings-modal');
+  const savingsForm = document.getElementById('savings-form');
+  const savingsContribModal = document.getElementById('savings-contrib-modal');
+  const savingsContribForm = document.getElementById('savings-contrib-form');
   const filterSearch = document.getElementById('filter-search');
   const filterCategory = document.getElementById('filter-category');
   const filterCurrency = document.getElementById('filter-currency');
@@ -93,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterTo = document.getElementById('filter-to');
   const clearFiltersBtn = document.getElementById('clear-filters-btn');
   const exportCsvBtn = document.getElementById('export-csv-btn');
+  const exportPdfBtn = document.getElementById('export-pdf-btn');
+  const newGoalBtn = document.getElementById('new-goal-btn');
   const currencySwitchBtns = document.querySelectorAll('.currency-switch__btn');
 
   // ============================================================
@@ -201,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Cerrar cualquier modal al hacer click en el fondo
-  [modal, budgetModal, editModal, confirmModal].forEach((m) => {
+  [modal, budgetModal, editModal, confirmModal, savingsModal, savingsContribModal].forEach((m) => {
     if (!m) return;
     m.addEventListener('click', (e) => {
       if (e.target === m) closeActiveModal();
@@ -210,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('#image-modal .close-modal').addEventListener('click', closeActiveModal);
   document.querySelector('.close-budget-modal').addEventListener('click', closeActiveModal);
   document.querySelector('.close-edit-modal').addEventListener('click', closeActiveModal);
+  document.querySelector('.close-savings-modal').addEventListener('click', closeActiveModal);
+  document.querySelector('.close-contrib-modal').addEventListener('click', closeActiveModal);
 
   // ============================================================
   //  AYUDANTES DE ANIMACIÓN Y TRANSICIONES
@@ -497,6 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initDashboard() {
     initDateAndTime();
+    loadCategoryBudgets();
+    loadSavingsGoals();
     // Son consultas independientes: cargarlas en paralelo reduce la latencia inicial.
     await Promise.all([fetchBudgets(), fetchSummary(), fetchExpensesPage({ reset: true })]);
   }
@@ -627,6 +639,10 @@ document.addEventListener('DOMContentLoaded', () => {
       pctLabel.innerText = `${pct.toFixed(0)}% consumido`;
       remLabel.innerText = `${formatMoney(remaining)} restante`;
     }
+
+    // Renderizar categorías y metas asociadas
+    renderCategoryBudgetsUI();
+    renderSavingsGoalsUI();
   }
 
   function renderInsights() {
@@ -1441,16 +1457,208 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ============================================================
-  //  PRESUPUESTOS
+  //  PRESUPUESTOS Y METAS DE AHORRO (Persistencia y Lógica)
   // ============================================================
 
   const openBudgetBtn = document.getElementById('open-budget-btn');
   const budgetForm = document.getElementById('budget-form');
 
+  // Funciones de persistencia local
+  function loadCategoryBudgets() {
+    const raw = window.localStorage.getItem(`apex-cat-budgets-${currentUser.id}`);
+    if (raw) {
+      try {
+        categoryBudgets = JSON.parse(raw);
+      } catch (e) {
+        console.error('Error parsing category budgets:', e);
+      }
+    } else {
+      categoryBudgets = { USD: {}, PEN: {} };
+    }
+  }
+
+  function saveCategoryBudgets() {
+    window.localStorage.setItem(`apex-cat-budgets-${currentUser.id}`, JSON.stringify(categoryBudgets));
+  }
+
+  function loadSavingsGoals() {
+    const raw = window.localStorage.getItem(`apex-savings-goals-${currentUser.id}`);
+    if (raw) {
+      try {
+        savingsGoals = JSON.parse(raw);
+      } catch (e) {
+        console.error('Error parsing savings goals:', e);
+      }
+    } else {
+      savingsGoals = [];
+    }
+  }
+
+  function saveSavingsGoals() {
+    window.localStorage.setItem(`apex-savings-goals-${currentUser.id}`, JSON.stringify(savingsGoals));
+  }
+
+  function renderCategoryBudgetsUI() {
+    const listEl = document.getElementById('category-budgets-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const categories = ['Alimentación', 'Transporte', 'Servicios', 'Suscripciones', 'Oficina', 'Otros'];
+    const activeCatBudgets = categoryBudgets[activeCurrency] || {};
+    const symbol = CURRENCIES[activeCurrency].symbol;
+
+    // Calcular consumo mensual por categoría desde summary.by_category
+    const activeSummary = (summary?.by_category || []).filter(r => r.currency === activeCurrency);
+    const spentMap = {};
+    activeSummary.forEach(r => {
+      spentMap[r.category || 'Otros'] = parseFloat(r.total) || 0;
+    });
+
+    let hasAnyBudget = false;
+
+    categories.forEach(cat => {
+      const limit = activeCatBudgets[cat];
+      if (limit === undefined || limit === null || isNaN(limit)) return; // sin límite
+      hasAnyBudget = true;
+
+      const spent = spentMap[cat] || 0;
+      const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+      const isWarning = pct >= 80;
+
+      const itemHtml = `
+        <div class="category-budget-item">
+          <div class="category-budget-header">
+            <span>${categoryEmojis[cat] || '🏷️'} ${cat}</span>
+            <span>${symbol}${spent.toFixed(2)} / ${symbol}${limit.toFixed(2)}</span>
+          </div>
+          <div class="category-budget-bar">
+            <div class="category-budget-progress ${isWarning ? 'warning' : ''}" style="width: ${pct}%"></div>
+          </div>
+          <div class="category-budget-text">
+            <span>${pct.toFixed(0)}% consumido</span>
+            <span>${symbol}${Math.max(limit - spent, 0).toFixed(2)} restante</span>
+          </div>
+        </div>
+      `;
+      listEl.insertAdjacentHTML('beforeend', itemHtml);
+    });
+
+    if (!hasAnyBudget) {
+      listEl.innerHTML = `
+        <p style="color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px;">
+          No has configurado límites por categoría para <strong>${CURRENCIES[activeCurrency].label}</strong>.
+        </p>
+      `;
+    }
+  }
+
+  function renderSavingsGoalsUI() {
+    const listEl = document.getElementById('savings-goals-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const activeGoals = savingsGoals.filter(g => g.currency === activeCurrency);
+    const symbol = CURRENCIES[activeCurrency].symbol;
+
+    if (activeGoals.length === 0) {
+      listEl.innerHTML = `
+        <p style="color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px;">
+          No tienes metas de ahorro en <strong>${CURRENCIES[activeCurrency].label}</strong>. ¡Crea una para comenzar!
+        </p>
+      `;
+      return;
+    }
+
+    activeGoals.forEach(goal => {
+      const pct = goal.target > 0 ? Math.min((goal.saved / goal.target) * 100, 100) : 0;
+      const cardHtml = `
+        <div class="savings-goal-item" data-id="${goal.id}">
+          <div class="savings-goal-header">
+            <div class="savings-goal-title">${escapeHtml(goal.name)}</div>
+            <div class="savings-goal-actions">
+              <button type="button" class="savings-goal-btn contrib-btn" title="Abonar ahorro" data-id="${goal.id}">💰</button>
+              <button type="button" class="savings-goal-btn edit-goal-btn" title="Editar meta" data-id="${goal.id}">✏️</button>
+              <button type="button" class="savings-goal-btn delete-goal-btn" title="Eliminar meta" data-id="${goal.id}">🗑️</button>
+            </div>
+          </div>
+          <div class="savings-goal-amounts">
+            <div>Ahorrado: <span class="saved">${symbol}${goal.saved.toFixed(2)}</span></div>
+            <div>Objetivo: ${symbol}${goal.target.toFixed(2)}</div>
+          </div>
+          <div class="savings-goal-bar">
+            <div class="savings-goal-progress" style="width: ${pct}%"></div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-faint); margin-top: -4px;">
+            ${pct.toFixed(0)}% completado
+          </div>
+        </div>
+      `;
+      listEl.insertAdjacentHTML('beforeend', cardHtml);
+    });
+
+    // Enlazar los botones de las metas de ahorro
+    listEl.querySelectorAll('.contrib-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const goal = savingsGoals.find(g => g.id === id);
+        if (goal) {
+          document.getElementById('contrib-goal-id').value = id;
+          document.getElementById('contrib-currency-symbol').textContent = symbol;
+          document.getElementById('contrib-amount').value = '';
+          openModal(document.getElementById('savings-contrib-modal'));
+        }
+      });
+    });
+
+    listEl.querySelectorAll('.edit-goal-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const goal = savingsGoals.find(g => g.id === id);
+        if (goal) {
+          document.getElementById('savings-goal-id').value = id;
+          document.getElementById('savings-name').value = goal.name;
+          document.getElementById('savings-target').value = goal.target;
+          document.getElementById('savings-currency').value = goal.currency;
+          document.getElementById('savings-saved').value = goal.saved;
+          document.getElementById('savings-modal-title').textContent = 'Editar Meta de Ahorro';
+          openModal(savingsModal);
+        }
+      });
+    });
+
+    listEl.querySelectorAll('.delete-goal-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const goal = savingsGoals.find(g => g.id === id);
+        if (goal) {
+          const yes = await confirmDialog(`¿Estás seguro de que deseas eliminar la meta "${goal.name}"?`);
+          if (yes) {
+            savingsGoals = savingsGoals.filter(g => g.id !== id);
+            saveSavingsGoals();
+            renderSavingsGoalsUI();
+            showToast('Meta de ahorro eliminada.', 'success');
+          }
+        }
+      });
+    });
+  }
+
+  // Handlers para presupuestos globales y por categorías
   if (openBudgetBtn && budgetModal && budgetForm) {
     openBudgetBtn.addEventListener('click', () => {
       document.getElementById('budget-usd').value = userBudgets.USD;
       document.getElementById('budget-pen').value = userBudgets.PEN;
+
+      // Cargar límites por categoría de la moneda activa
+      const activeCatBudgets = categoryBudgets[activeCurrency] || {};
+      document.getElementById('budget-cat-currency-label').textContent = `(${activeCurrency})`;
+      document.getElementById('budget-cat-food').value = activeCatBudgets['Alimentación'] ?? '';
+      document.getElementById('budget-cat-transport').value = activeCatBudgets['Transporte'] ?? '';
+      document.getElementById('budget-cat-services').value = activeCatBudgets['Servicios'] ?? '';
+      document.getElementById('budget-cat-subs').value = activeCatBudgets['Suscripciones'] ?? '';
+      document.getElementById('budget-cat-office').value = activeCatBudgets['Oficina'] ?? '';
+      document.getElementById('budget-cat-others').value = activeCatBudgets['Otros'] ?? '';
+
       openModal(budgetModal);
     });
 
@@ -1463,6 +1671,28 @@ document.addEventListener('DOMContentLoaded', () => {
       saveBtn.disabled = true;
       saveBtn.innerText = 'Guardando...';
 
+      // Capturar y actualizar los presupuestos de categoría locales
+      const activeCatBudgets = categoryBudgets[activeCurrency] || {};
+      const inputs = {
+        'Alimentación': document.getElementById('budget-cat-food').value,
+        'Transporte': document.getElementById('budget-cat-transport').value,
+        'Servicios': document.getElementById('budget-cat-services').value,
+        'Suscripciones': document.getElementById('budget-cat-subs').value,
+        'Oficina': document.getElementById('budget-cat-office').value,
+        'Otros': document.getElementById('budget-cat-others').value
+      };
+
+      Object.keys(inputs).forEach(cat => {
+        const val = inputs[cat];
+        if (val === '' || val === undefined || val === null) {
+          delete activeCatBudgets[cat];
+        } else {
+          activeCatBudgets[cat] = parseFloat(val);
+        }
+      });
+      categoryBudgets[activeCurrency] = activeCatBudgets;
+      saveCategoryBudgets();
+
       try {
         const [resUSD, resPEN] = await Promise.all([
           supabase.from('budgets').upsert({ user_id: currentUser.id, currency: 'USD', amount: newUSD }, { onConflict: 'user_id,currency' }),
@@ -1471,12 +1701,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resUSD.error) throw resUSD.error;
         if (resPEN.error) throw resPEN.error;
 
-        // Actualizar localmente
         userBudgets.USD = newUSD;
         userBudgets.PEN = newPEN;
 
         closeActiveModal();
         updateBudgetUI();
+        showToast('Presupuestos actualizados con éxito.', 'success');
       } catch (err) {
         console.error('Error saving budgets:', err);
         showToast('Fallo al guardar límites: ' + err.message, 'error');
@@ -1484,6 +1714,78 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.disabled = false;
         saveBtn.innerText = 'Guardar Límites';
       }
+    });
+  }
+
+  // Handlers para creación y abonos de metas
+  if (newGoalBtn && savingsModal && savingsForm) {
+    newGoalBtn.addEventListener('click', () => {
+      document.getElementById('savings-goal-id').value = '';
+      document.getElementById('savings-name').value = '';
+      document.getElementById('savings-target').value = '';
+      document.getElementById('savings-currency').value = activeCurrency;
+      document.getElementById('savings-saved').value = '0';
+      document.getElementById('savings-modal-title').textContent = 'Nueva Meta de Ahorro';
+      openModal(savingsModal);
+    });
+
+    savingsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('savings-goal-id').value;
+      const name = document.getElementById('savings-name').value.trim();
+      const target = parseFloat(document.getElementById('savings-target').value);
+      const currency = document.getElementById('savings-currency').value;
+      const saved = parseFloat(document.getElementById('savings-saved').value) || 0;
+
+      if (id) {
+        // Modo Edición
+        const goal = savingsGoals.find(g => g.id === id);
+        if (goal) {
+          goal.name = name;
+          goal.target = target;
+          goal.currency = currency;
+          goal.saved = saved;
+        }
+      } else {
+        // Modo Creación
+        const newGoal = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          name,
+          target,
+          currency,
+          saved
+        };
+        savingsGoals.push(newGoal);
+      }
+
+      saveSavingsGoals();
+      closeActiveModal();
+      renderSavingsGoalsUI();
+      showToast(id ? 'Meta de ahorro modificada.' : 'Meta de ahorro creada con éxito.', 'success');
+    });
+  }
+
+  if (savingsContribForm && savingsContribModal) {
+    savingsContribForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('contrib-goal-id').value;
+      const amount = parseFloat(document.getElementById('contrib-amount').value);
+
+      const goal = savingsGoals.find(g => g.id === id);
+      if (goal) {
+        goal.saved += amount;
+        saveSavingsGoals();
+        closeActiveModal();
+        renderSavingsGoalsUI();
+        showToast(`Abono registrado con éxito. ¡Sigue así!`, 'success');
+      }
+    });
+  }
+
+  // Exportar PDF
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', () => {
+      window.print();
     });
   }
 });

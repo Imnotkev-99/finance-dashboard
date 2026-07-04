@@ -2004,3 +2004,239 @@ td {
     flex: 1;
   }
 }
+
+/* ============================================================
+   Mejoras 2026-07-04: Límites por Categoría, Metas y PDF
+   ============================================================ */
+
+/* --- Estilos para la lista de presupuestos por categoría --- */
+.category-budget-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.category-budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.category-budget-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.category-budget-progress {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--primary);
+  width: 0%;
+  transition: width 400ms var(--ease-out), background-color 300ms var(--ease-out);
+}
+
+.category-budget-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.category-budget-progress.warning {
+  background: var(--danger);
+}
+
+/* --- Estilos para las tarjetas de metas de ahorro --- */
+.savings-goal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 200ms var(--ease-out);
+}
+
+.savings-goal-item:hover {
+  border-color: var(--border-strong);
+}
+
+.savings-goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.savings-goal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.savings-goal-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.savings-goal-btn {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+
+.savings-goal-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.savings-goal-amounts {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.savings-goal-amounts .saved {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.savings-goal-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.savings-goal-progress {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--primary);
+  width: 0%;
+  transition: width 400ms var(--ease-out);
+}
+
+/* --- Modal y clases close-modal específicas --- */
+.close-savings-modal, .close-contrib-modal {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
+
+/* ============================================================
+   DISEÑO PARA IMPRESIÓN (PDF)
+   ============================================================ */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #121318 !important;
+    font-size: 12px !important;
+  }
+
+  /* Ocultar elementos interactivos, decorativos y el canvas 3D */
+  .bg-canvas,
+  .bg-video-overlay,
+  .sidebar,
+  .kpi__config-btn,
+  .header-actions,
+  .btn-primary,
+  .ghost-btn,
+  .form-section,
+  .table-toolbar,
+  .actions-cell,
+  .modal,
+  th:last-child,
+  td:last-child {
+    display: none !important;
+  }
+
+  /* Expandir el contenido principal a pantalla completa de impresión */
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    color: #121318 !important;
+    page-break-inside: avoid;
+  }
+
+  .kpi h3, .insight-label {
+    color: #4a5568 !important;
+  }
+
+  .kpi p, .insight-value {
+    color: #1a202c !important;
+  }
+
+  /* Re-diseñar el layout para que se imprima ordenadamente en papel */
+  .content-grid {
+    display: block !important;
+  }
+
+  .chart-section {
+    width: 100% !important;
+    margin-top: 20px !important;
+  }
+
+  .chart-layout {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .chart-main {
+    height: 250px !important;
+  }
+
+  .financial-control-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+    margin-top: 20px !important;
+    page-break-inside: avoid;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin-top: 15px !important;
+  }
+
+  th {
+    background: #f7fafc !important;
+    color: #2d3748 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+  }
+
+  td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #2d3748 !important;
+  }
+
+  /* Forzar saltos de página inteligentes */
+  .history-section {
+    page-break-before: always;
+    margin-top: 40px !important;
+  }
+}
