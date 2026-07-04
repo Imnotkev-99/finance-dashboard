@@ -3,8 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monster Prompt Studio V4 | NextGen IA</title>
+    <title>NOVA Prompt V1 Studio | NextGen IA</title>
     <meta name="description" content="Transforma ideas en lenguaje natural en prompts maestros optimizados para Gemini, ChatGPT, Claude, Midjourney, Flux, DALL-E, Runway y ElevenLabs.">
+    <meta name="theme-color" content="#05070f">
+
+    <!-- Favicon / PWA icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="NOVA Prompt V1 Studio | NextGen IA">
+    <meta property="og:description" content="Transforma ideas en lenguaje natural en prompts maestros optimizados para Gemini, ChatGPT, Claude, Midjourney, Flux, DALL-E, Runway y ElevenLabs.">
+    <meta property="og:image" content="og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NOVA Prompt V1 Studio | NextGen IA">
+    <meta name="twitter:description" content="Transforma ideas en lenguaje natural en prompts maestros optimizados para Gemini, ChatGPT, Claude, Midjourney, Flux, DALL-E, Runway y ElevenLabs.">
+    <meta name="twitter:image" content="og-image.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,44 +37,79 @@
     <header>
         <div class="header-container">
             <div class="logo">
-                Monster Prompt <span>V4 Studio</span>
+                NOVA Prompt <span>V1 Studio</span>
             </div>
             <div class="nav-actions">
-                <button class="btn-api-config" id="apiConfigBtn" aria-expanded="false" aria-controls="apiPanel">
-                    ⚙️ Conectar Gemini API
+                <div class="language-switch" role="group" aria-label="Idioma / Language">
+                    <button type="button" class="language-switch__btn" data-lang="es" aria-pressed="false">ES</button>
+                    <button type="button" class="language-switch__btn" data-lang="en" aria-pressed="false">EN</button>
+                </div>
+                <button class="btn-api-config" id="apiConfigBtn" aria-expanded="false" aria-controls="apiPanel" data-i18n="nav_connect_api">
+                    ⚙️ Conectar IA en Vivo
                 </button>
             </div>
         </div>
     </header>
 
     <section class="hero">
-        <h1>Monster Prompt V4 Studio</h1>
-        <p>Escribe tu idea informal en lenguaje normal y transfórmala instantáneamente en un Prompt Maestro con ingeniería avanzada y optimización multimodal.</p>
+        <h1>NOVA Prompt V1 Studio</h1>
+        <p data-i18n="hero_subtitle">Escribe tu idea informal en lenguaje normal y transfórmala instantáneamente en un Prompt Maestro con ingeniería avanzada y optimización multimodal.</p>
     </section>
 
     <!-- API Config Modal Panel -->
     <div class="container" style="display: block; margin-top: 1rem; margin-bottom: 0;" id="apiPanelContainer">
         <div class="api-panel" id="apiPanel">
             <div class="api-panel-header">
-                <div class="api-panel-title">Integración Directa con la API de Gemini (100% Gratuita e Instantánea)</div>
-                <button class="btn-action btn-close-panel" id="closeApiBtn" aria-label="Cerrar panel de configuración">✕</button>
+                <div class="api-panel-title" data-i18n="api_panel_title">Integración Directa con IA en Vivo</div>
+                <button class="btn-action btn-close-panel" id="closeApiBtn" aria-label="Cerrar panel de configuración" data-i18n-aria-label="api_close_aria">✕</button>
             </div>
             <div class="api-panel-grid">
                 <div>
-                    <label class="form-label" for="apiKeyInput">Tu clave de API</label>
-                    <input type="password" class="api-input" id="apiKeyInput" placeholder="Introduce tu Gemini API Key (AIzaSy...)" autocomplete="off">
-                    <div class="api-help-text">
-                        Esta clave se guarda localmente y de forma privada solo en tu navegador (nunca sale hacia nuestros servidores). Puedes generar tu clave 100% gratis en <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. No la compartas ni la pegues en sitios en los que no confíes.
+                    <label class="form-label" id="providerLabel" data-i18n="api_provider_label">Proveedor de IA en Vivo</label>
+                    <div class="cinematic-grid grid-4" role="radiogroup" aria-labelledby="providerLabel" id="chatProviderGroup">
+                        <button class="btn-cinematic active" data-provider="gemini" role="radio" aria-checked="true">Gemini (Google)</button>
+                        <button class="btn-cinematic" data-provider="claude" role="radio" aria-checked="false">Claude (Anthropic)</button>
+                        <button class="btn-cinematic" data-provider="chatgpt" role="radio" aria-checked="false">ChatGPT (OpenAI)</button>
+                        <button class="btn-cinematic" data-provider="grok" role="radio" aria-checked="false">Grok (xAI)</button>
                     </div>
-                    <label class="form-label" for="modelSelect" style="margin-top:0.8rem;">Modelo del chat en vivo</label>
-                    <select class="api-input" id="modelSelect">
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (recomendado)</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (mayor calidad)</option>
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                    </select>
+
+                    <div id="providerConfigGemini">
+                        <label class="form-label" for="apiKeyInput" style="margin-top:0.8rem;" data-i18n="api_key_label">Tu clave de API</label>
+                        <input type="password" class="api-input" id="apiKeyInput" placeholder="Introduce tu Gemini API Key (AIzaSy...)" data-i18n-placeholder="api_key_placeholder" autocomplete="off">
+                        <div class="api-help-text" data-i18n="api_help_text_gemini">
+                            Esta clave se guarda localmente y de forma privada solo en tu navegador (nunca sale hacia nuestros servidores). Puedes generar tu clave 100% gratis en <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. No la compartas ni la pegues en sitios en los que no confíes.
+                        </div>
+                        <label class="form-label" for="modelSelect" style="margin-top:0.8rem;" data-i18n="api_model_label">Modelo del chat en vivo</label>
+                        <select class="api-input" id="modelSelect">
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (recomendado)</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (mayor calidad)</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        </select>
+                    </div>
+
+                    <div id="providerConfigClaude" style="display:none;">
+                        <label class="form-label" for="claudeApiKeyInput" style="margin-top:0.8rem;" data-i18n="api_key_label">Tu clave de API</label>
+                        <input type="password" class="api-input" id="claudeApiKeyInput" placeholder="Introduce tu Anthropic API Key (sk-ant-...)" data-i18n-placeholder="claude_key_placeholder" autocomplete="off">
+                        <div class="api-help-text" data-i18n="api_help_text_claude">
+                            Esta clave se guarda localmente y de forma privada solo en tu navegador (nunca sale hacia nuestros servidores). Puedes generar tu clave en <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> (a diferencia de Gemini, la API de Claude no es gratuita). ⚠️ Anthropic solo permite esta llamada directa desde el navegador mediante un header experimental que expone la clave a cualquiera con acceso a las herramientas de desarrollador de esta página: úsalo solo en tu propio equipo, nunca en un sitio compartido.
+                        </div>
+                        <label class="form-label" for="claudeModelSelect" style="margin-top:0.8rem;" data-i18n="api_model_label">Modelo del chat en vivo</label>
+                        <select class="api-input" id="claudeModelSelect">
+                            <option value="claude-sonnet-5">Claude Sonnet 5 (recomendado)</option>
+                            <option value="claude-opus-4-8">Claude Opus 4.8 (mayor calidad)</option>
+                            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (más rápido)</option>
+                        </select>
+                    </div>
+
+                    <div id="providerConfigUnavailable" style="display:none;">
+                        <div class="api-help-text" style="margin-top:0.8rem;">
+                            <strong data-i18n="provider_unavailable_title">Esta plataforma no está disponible para chat directo</strong><br>
+                            <span data-i18n="provider_unavailable_desc">Su API bloquea las llamadas directas desde el navegador (CORS); conectarla requeriría un pequeño backend intermedio que este proyecto (100% estático) no tiene. Mientras tanto, usa la pestaña "Prompt Compilado" con esta plataforma como destino: obtienes un prompt ya optimizado para pegar directamente en su web o app oficial.</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="api-panel-actions">
-                    <button class="btn-select active" id="saveApiKeyBtn">
+                    <button class="btn-select active" id="saveApiKeyBtn" data-i18n="api_save_key_btn">
                         💾 Guardar Clave
                     </button>
                 </div>
@@ -67,84 +120,93 @@
     <main class="container">
         <!-- LEFT PANEL: Workspace (Inputs) -->
         <section class="card">
-            <div class="card-title">
-                <i>🛠️</i> Espacio de Trabajo del Prompt
+            <div class="card-title" data-i18n="workspace_title">
+                🛠️ Espacio de Trabajo del Prompt
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="userIdea">1. Escribe tu idea básica o informal</label>
-                <textarea id="userIdea" placeholder="Escribe aquí en lenguaje natural. Ej: 'Quiero un prompt para que me haga una receta de comida saludable con pollo', o 'Una foto de un gato ciberpunk en una azotea'..."></textarea>
+                <label class="form-label" for="userIdea" data-i18n="workspace_idea_label">1. Escribe tu idea básica o informal</label>
+                <textarea id="userIdea" placeholder="Escribe aquí en lenguaje natural. Ej: 'Quiero un prompt para que me haga una receta de comida saludable con pollo', o 'Una foto de un gato ciberpunk en una azotea'..." data-i18n-placeholder="workspace_idea_placeholder"></textarea>
             </div>
 
             <div class="form-group">
-                <label class="form-label" id="modalityLabel">2. Modalidad de Destino</label>
+                <label class="form-label" id="modalityLabel" data-i18n="modality_label">2. Modalidad de Destino</label>
                 <div class="button-group-grid" role="radiogroup" aria-labelledby="modalityLabel" id="modalityGroup">
                     <button class="btn-select active" data-modality="text" role="radio" aria-checked="true">
                         <span class="btn-select-icon">📝</span>
-                        Texto
+                        <span data-i18n="modality_text">Texto</span>
                     </button>
                     <button class="btn-select" data-modality="image" role="radio" aria-checked="false">
                         <span class="btn-select-icon">🎨</span>
-                        Imagen (Midjourney/Flux)
+                        <span data-i18n="modality_image">Imagen (Midjourney/Flux)</span>
                     </button>
                     <button class="btn-select" data-modality="video" role="radio" aria-checked="false">
                         <span class="btn-select-icon">🎬</span>
-                        Video AI (Runway/Sora)
+                        <span data-i18n="modality_video">Video AI (Runway/Sora)</span>
                     </button>
                     <button class="btn-select" data-modality="audio" role="radio" aria-checked="false">
                         <span class="btn-select-icon">🎙️</span>
-                        Audio (Suno/Eleven)
+                        <span data-i18n="modality_audio">Audio (Suno/Eleven)</span>
                     </button>
                 </div>
             </div>
 
             <!-- Text Target Platform Sub-Deck -->
             <div class="cinematic-deck" id="textDeck" style="display:block;">
-                <label class="form-label" style="color: var(--neon-indigo);">📝 Plataforma de Texto Destino</label>
-                <div class="cinematic-grid grid-3" role="radiogroup" id="textTargetGroup">
+                <label class="form-label" style="color: var(--neon-indigo);" data-i18n="texttarget_label">📝 Plataforma de Texto Destino</label>
+                <div class="cinematic-grid grid-4" role="radiogroup" id="textTargetGroup">
                     <button class="btn-cinematic active" data-text-target="gemini" role="radio" aria-checked="true">Gemini (Google)</button>
                     <button class="btn-cinematic" data-text-target="chatgpt" role="radio" aria-checked="false">ChatGPT (OpenAI)</button>
                     <button class="btn-cinematic" data-text-target="claude" role="radio" aria-checked="false">Claude (Anthropic)</button>
+                    <button class="btn-cinematic" data-text-target="grok" role="radio" aria-checked="false">Grok (xAI)</button>
                 </div>
             </div>
 
             <!-- Video/Cinematic Deck -->
             <div class="cinematic-deck" id="cinematicDeck">
-                <label class="form-label" style="color: var(--neon-pink);">🎬 Deck de Dirección Cinematográfica (Inyectables)</label>
+                <label class="form-label" style="color: var(--neon-pink);" data-i18n="cinematic_deck_label">🎬 Deck de Dirección Cinematográfica (Inyectables)</label>
 
-                <div class="form-label sub-label">Planos Cinematográficos</div>
+                <div class="form-label sub-label" data-i18n="videotarget_label">🎬 Plataforma de Video Destino</div>
+                <div class="cinematic-grid grid-4" role="radiogroup" id="videoTargetGroup">
+                    <button class="btn-cinematic active" data-video-target="runway" role="radio" aria-checked="true">Runway Gen-3</button>
+                    <button class="btn-cinematic" data-video-target="sora2" role="radio" aria-checked="false">Sora 2</button>
+                    <button class="btn-cinematic" data-video-target="veo3" role="radio" aria-checked="false">Veo 3</button>
+                    <button class="btn-cinematic" data-video-target="kling" role="radio" aria-checked="false">Kling AI</button>
+                </div>
+
+                <div class="form-label sub-label" data-i18n="cinematic_shots_label">Planos Cinematográficos</div>
                 <div class="cinematic-grid" id="cinematicShots">
-                    <button class="btn-cinematic" data-cinematic="Extreme Wide Shot (Gran Plano General)">Extreme Wide</button>
-                    <button class="btn-cinematic" data-cinematic="Medium Shot (Plano Medio)">Medium Shot</button>
-                    <button class="btn-cinematic" data-cinematic="Close-up (Primer Plano)">Close-up</button>
+                    <button class="btn-cinematic" data-cinematic="Extreme Wide Shot (Gran Plano General)" aria-pressed="false">Extreme Wide</button>
+                    <button class="btn-cinematic" data-cinematic="Medium Shot (Plano Medio)" aria-pressed="false">Medium Shot</button>
+                    <button class="btn-cinematic" data-cinematic="Close-up (Primer Plano)" aria-pressed="false">Close-up</button>
                 </div>
 
-                <div class="form-label sub-label">Óptica / Lentes</div>
+                <div class="form-label sub-label" data-i18n="cinematic_lenses_label">Óptica / Lentes</div>
                 <div class="cinematic-grid" id="cinematicLenses">
-                    <button class="btn-cinematic" data-cinematic="35mm standard cinematic lens">Lente 35mm</button>
-                    <button class="btn-cinematic" data-cinematic="85mm focal portrait lens, smooth bokeh background">Lente 85mm (Bokeh)</button>
-                    <button class="btn-cinematic" data-cinematic="Anamorphic widescreen lens cinematic flares">Lente Anamórfico</button>
+                    <button class="btn-cinematic" data-cinematic="35mm standard cinematic lens" data-i18n="lens_35mm" aria-pressed="false">Lente 35mm</button>
+                    <button class="btn-cinematic" data-cinematic="85mm focal portrait lens, smooth bokeh background" data-i18n="lens_85mm" aria-pressed="false">Lente 85mm (Bokeh)</button>
+                    <button class="btn-cinematic" data-cinematic="Anamorphic widescreen lens cinematic flares" data-i18n="lens_anamorphic" aria-pressed="false">Lente Anamórfico</button>
                 </div>
 
-                <div class="form-label sub-label">Movimientos de Cámara</div>
+                <div class="form-label sub-label" data-i18n="cinematic_motion_label">Movimientos de Cámara</div>
                 <div class="cinematic-grid" id="cinematicMotion">
-                    <button class="btn-cinematic" data-cinematic="Slow Dolly In camera motion">Dolly In</button>
-                    <button class="btn-cinematic" data-cinematic="Slow camera panning left">Pan Left</button>
-                    <button class="btn-cinematic" data-cinematic="Slow tilt up camera angle">Tilt Up</button>
-                    <button class="btn-cinematic" data-cinematic="Side truck camera translation">Truck Lateral</button>
+                    <button class="btn-cinematic" data-cinematic="Slow Dolly In camera motion" aria-pressed="false">Dolly In</button>
+                    <button class="btn-cinematic" data-cinematic="Slow camera panning left" aria-pressed="false">Pan Left</button>
+                    <button class="btn-cinematic" data-cinematic="Slow tilt up camera angle" aria-pressed="false">Tilt Up</button>
+                    <button class="btn-cinematic" data-cinematic="Side truck camera translation" aria-pressed="false">Truck Lateral</button>
                 </div>
 
-                <div class="form-label sub-label">Estilo de Iluminación</div>
+                <div class="form-label sub-label" data-i18n="cinematic_lighting_label">Estilo de Iluminación</div>
                 <div class="cinematic-grid" id="cinematicLighting">
-                    <button class="btn-cinematic" data-cinematic="Cinematic Moody Chiaroscuro high-contrast lighting">Chiaroscuro</button>
-                    <button class="btn-cinematic" data-cinematic="Atmospheric golden hour warm light">Golden Hour</button>
-                    <button class="btn-cinematic" data-cinematic="High-contrast neon cyberpunk cybernetic lights">Cyberpunk Neon</button>
+                    <button class="btn-cinematic" data-cinematic="Cinematic Moody Chiaroscuro high-contrast lighting" aria-pressed="false">Chiaroscuro</button>
+                    <button class="btn-cinematic" data-cinematic="Atmospheric golden hour warm light" aria-pressed="false">Golden Hour</button>
+                    <button class="btn-cinematic" data-cinematic="High-contrast neon cyberpunk cybernetic lights" aria-pressed="false">Cyberpunk Neon</button>
                 </div>
             </div>
 
             <!-- Image/Parameters Deck -->
             <div class="image-deck" id="imageDeck">
-                <label class="form-label" style="color: var(--neon-cyan);">🎨 Plataforma de Imagen Destino</label>
+                <label class="form-label" style="color: var(--neon-cyan);" data-i18n="imagedeck_label">🎨 Plataforma de Imagen Destino</label>
                 <div class="cinematic-grid grid-4 mb-lg" role="radiogroup" id="imageTargetGroup">
                     <button class="btn-cinematic active" data-image-target="midjourney" role="radio" aria-checked="true">Midjourney v6</button>
                     <button class="btn-cinematic" data-image-target="flux" role="radio" aria-checked="false">Flux.1 (Hyper)</button>
@@ -154,7 +216,7 @@
 
                 <!-- Google Image Models Sub-Deck -->
                 <div class="cinematic-deck google-deck" id="googleImageDeck">
-                    <label class="form-label google-label">🤖 Modelo de Google Gemini Destino</label>
+                    <label class="form-label google-label" data-i18n="googledeck_label">🤖 Modelo de Google Gemini Destino</label>
                     <div class="cinematic-grid grid-4 gap-sm" role="radiogroup" id="googleModelGroup">
                         <button class="btn-cinematic" data-google-model="imagen2" role="radio" aria-checked="false">Imagen 2</button>
                         <button class="btn-cinematic" data-google-model="imagen3" role="radio" aria-checked="false">Imagen 3</button>
@@ -163,11 +225,11 @@
                     </div>
                 </div>
 
-                <label class="form-label" id="imgSlidersHeader" style="color: var(--neon-cyan);">⚙️ Parámetros Avanzados</label>
+                <label class="form-label" id="imgSlidersHeader" style="color: var(--neon-cyan);" data-i18n="img_sliders_header">⚙️ Parámetros Avanzados</label>
 
                 <div class="slider-group" id="stylizeSliderGroup">
                     <div class="slider-header">
-                        <span>Midjourney Stylize (Grado de diseño) <code>--s</code></span>
+                        <span><span data-i18n="stylize_header">Midjourney Stylize (Grado de diseño)</span> <code>--s</code></span>
                         <span class="value" id="stylizeVal">250</span>
                     </div>
                     <input type="range" class="slider-input" id="stylizeSlider" min="0" max="1000" value="250" step="50" aria-label="Midjourney stylize value">
@@ -175,7 +237,7 @@
 
                 <div class="slider-group" id="chaosSliderGroup">
                     <div class="slider-header">
-                        <span>Midjourney Chaos (Variedad/Locura) <code>--c</code></span>
+                        <span><span data-i18n="chaos_header">Midjourney Chaos (Variedad/Locura)</span> <code>--c</code></span>
                         <span class="value" id="chaosVal">0</span>
                     </div>
                     <input type="range" class="slider-input" id="chaosSlider" min="0" max="100" value="0" step="5" aria-label="Midjourney chaos value">
@@ -183,41 +245,48 @@
 
                 <div class="slider-group">
                     <div class="slider-header">
-                        <span>Relación de Aspecto (Aspect Ratio)</span>
+                        <span data-i18n="ratio_header">Relación de Aspecto (Aspect Ratio)</span>
                     </div>
                     <div class="cinematic-grid grid-4" role="radiogroup" id="imageRatioGroup">
-                        <button class="btn-cinematic active" data-ratio="16:9" role="radio" aria-checked="true">16:9 (Cine)</button>
-                        <button class="btn-cinematic" data-ratio="9:16" role="radio" aria-checked="false">9:16 (Móvil)</button>
-                        <button class="btn-cinematic" data-ratio="1:1" role="radio" aria-checked="false">1:1 (Square)</button>
-                        <button class="btn-cinematic" data-ratio="4:3" role="radio" aria-checked="false">4:3 (Retro)</button>
+                        <button class="btn-cinematic active" data-ratio="16:9" role="radio" aria-checked="true" data-i18n="ratio_169">16:9 (Cine)</button>
+                        <button class="btn-cinematic" data-ratio="9:16" role="radio" aria-checked="false" data-i18n="ratio_916">9:16 (Móvil)</button>
+                        <button class="btn-cinematic" data-ratio="1:1" role="radio" aria-checked="false" data-i18n="ratio_11">1:1 (Square)</button>
+                        <button class="btn-cinematic" data-ratio="4:3" role="radio" aria-checked="false" data-i18n="ratio_43">4:3 (Retro)</button>
                     </div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span id="negativePromptLabel" data-i18n="negative_prompt_header">Negative Prompt (Elementos a Evitar)</span>
+                    </div>
+                    <textarea class="negative-prompt-input" id="negativePromptInput" rows="2" placeholder="Ej: manos deformes, texto borroso, marcas de agua, baja calidad, exceso de dedos..." data-i18n-placeholder="negative_prompt_placeholder" aria-labelledby="negativePromptLabel"></textarea>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label" id="toneLabel">3. Tono e Intención del Prompt</label>
+                <label class="form-label" id="toneLabel" data-i18n="tone_label">3. Tono e Intención del Prompt</label>
                 <div class="button-group-grid" role="radiogroup" aria-labelledby="toneLabel" id="toneGroup">
-                    <button class="btn-select active" data-tone="profesional" role="radio" aria-checked="true">Profesional</button>
-                    <button class="btn-select" data-tone="creativo" role="radio" aria-checked="false">Muy Creativo</button>
-                    <button class="btn-select" data-tone="educativo" role="radio" aria-checked="false">Pedagógico</button>
-                    <button class="btn-select" data-tone="tecnico" role="radio" aria-checked="false">Estricto / Técnico</button>
+                    <button class="btn-select active" data-tone="profesional" role="radio" aria-checked="true" data-i18n="tone_profesional">Profesional</button>
+                    <button class="btn-select" data-tone="creativo" role="radio" aria-checked="false" data-i18n="tone_creativo">Muy Creativo</button>
+                    <button class="btn-select" data-tone="educativo" role="radio" aria-checked="false" data-i18n="tone_educativo">Pedagógico</button>
+                    <button class="btn-select" data-tone="tecnico" role="radio" aria-checked="false" data-i18n="tone_tecnico">Estricto / Técnico</button>
                 </div>
             </div>
 
-            <button class="btn-reset" id="resetBtn" type="button">↺ Empezar de nuevo</button>
+            <button class="btn-reset" id="resetBtn" type="button" data-i18n="reset_btn">↺ Empezar de nuevo</button>
         </section>
 
         <!-- RIGHT PANEL: Output & Realtime Diagnostics -->
         <section class="card card-output">
             <div>
-                <div class="card-title">
-                    <i>🔬</i> Panel de Calidad y Diagnóstico
+                <div class="card-title" data-i18n="diagnostics_title">
+                    🔬 Panel de Calidad y Diagnóstico
                 </div>
 
                 <!-- Animated circular score panel -->
-                <div class="score-panel">
+                <div class="score-panel" aria-live="polite">
                     <div class="score-circle-container">
-                        <svg class="score-svg">
+                        <svg class="score-svg" aria-hidden="true">
                             <defs>
                                 <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" stop-color="#6366f1" />
@@ -230,81 +299,102 @@
                         <div class="score-number" id="scoreNumber">0%</div>
                     </div>
                     <div class="score-info">
-                        <div class="score-title" id="scoreFeedback">Workspace Vacío</div>
-                        <div class="score-desc" id="scoreSubfeedback">Escribe una idea a la izquierda para analizar la calidad estructural de tu prompt.</div>
+                        <div class="score-title" id="scoreFeedback" data-i18n="score_empty_title">Workspace Vacío</div>
+                        <div class="score-desc" id="scoreSubfeedback" data-i18n="score_empty_desc">Escribe una idea a la izquierda para analizar la calidad estructural de tu prompt.</div>
                     </div>
                 </div>
 
                 <!-- Interactive Boosters -->
                 <div class="boosters-deck">
-                    <label class="form-label">Aceleradores de Prompt (Boosters de un clic)</label>
+                    <label class="form-label" data-i18n="boosters_label">Aceleradores de Prompt (Boosters de un clic)</label>
                     <div class="boosters-grid" id="boostersGroup">
-                        <button class="btn-booster" data-booster="persona" aria-pressed="false">👤 Inyectar Rol Senior</button>
-                        <button class="btn-booster" data-booster="cot" aria-pressed="false">⚙️ Forzar Pensamiento Paso a Paso</button>
-                        <button class="btn-booster" data-booster="avoid" aria-pressed="false">🚫 Añadir Cláusula de Alucinación</button>
-                        <button class="btn-booster" data-booster="variables" aria-pressed="false">🧩 Crear Variables {{...}}</button>
+                        <button class="btn-booster" data-booster="persona" aria-pressed="false" data-i18n="booster_persona">👤 Inyectar Rol Senior</button>
+                        <button class="btn-booster" data-booster="cot" aria-pressed="false" data-i18n="booster_cot">⚙️ Forzar Pensamiento Paso a Paso</button>
+                        <button class="btn-booster" data-booster="avoid" aria-pressed="false" data-i18n="booster_avoid">🚫 Añadir Cláusula de Alucinación</button>
+                        <button class="btn-booster" data-booster="variables" aria-pressed="false" data-i18n="booster_variables">🧩 Crear Variables {{...}}</button>
                     </div>
                 </div>
 
                 <!-- Diagnostic list -->
-                <div class="diagnostic-tips">
-                    <div class="diagnostic-tips-title">🔍 Ejes de Ingeniería de Prompts</div>
-                    <div class="diagnostic-item" id="diagLength">❌ Longitud mínima de la idea (Mín. 10 caracteres)</div>
-                    <div class="diagnostic-item" id="diagPersona">❌ Rol e Identidad de Experto definidos</div>
-                    <div class="diagnostic-item" id="diagConstraints">❌ Cláusulas de Restricciones claras</div>
-                    <div class="diagnostic-item" id="diagOutput">❌ Especificación del formato de salida</div>
+                <div class="diagnostic-tips" aria-live="polite">
+                    <div class="diagnostic-tips-title" data-i18n="diag_tips_title">🔍 Ejes de Ingeniería de Prompts</div>
+                    <div class="diagnostic-item" id="diagLength" data-i18n="diag_length_off">❌ Longitud mínima de la idea (Mín. 10 caracteres)</div>
+                    <div class="diagnostic-item" id="diagPersona" data-i18n="diag_persona_off">❌ Rol e Identidad de Experto definidos</div>
+                    <div class="diagnostic-item" id="diagConstraints" data-i18n="diag_constraints_off">❌ Cláusulas de Restricciones claras</div>
+                    <div class="diagnostic-item" id="diagOutput" data-i18n="diag_output_off">❌ Especificación del formato de salida</div>
+                    <div class="diagnostic-item stale-notice" id="scoreStaleNotice" style="display:none;" data-i18n="score_stale_notice">⚠️ Editaste el prompt manualmente — el diagnóstico refleja la última versión generada, no tus cambios.</div>
                 </div>
 
-                <div class="tab-nav">
-                    <button class="tab-btn active" data-tab="compiled">🔧 Prompt Compilado</button>
-                    <button class="tab-btn" data-tab="aiChat" id="chatTabBtn" style="display:none;">🤖 Live AI Generator</button>
-                    <button class="tab-btn" data-tab="history" id="historyTabBtn">🕒 Historial</button>
+                <div class="tab-nav" role="tablist" aria-label="Panel de salida">
+                    <button class="tab-btn active" data-tab="compiled" data-i18n="tab_compiled" role="tab" aria-selected="true" aria-controls="tabCompiled" id="tabBtnCompiled" tabindex="0">🔧 Prompt Compilado</button>
+                    <button class="tab-btn" data-tab="aiChat" id="chatTabBtn" style="display:none;" role="tab" aria-selected="false" aria-controls="tabAiChat" tabindex="-1">🤖 Live AI Generator</button>
+                    <button class="tab-btn" data-tab="history" id="historyTabBtn" data-i18n="tab_history" role="tab" aria-selected="false" aria-controls="tabHistory" tabindex="-1">🕒 Historial</button>
+                    <button class="tab-btn" data-tab="templates" id="templatesTabBtn" data-i18n="tab_templates" role="tab" aria-selected="false" aria-controls="tabTemplates" tabindex="-1">📁 Plantillas</button>
                 </div>
             </div>
 
             <!-- Tab 1: Static compiled prompt -->
-            <div class="tab-content active" id="tabCompiled">
+            <div class="tab-content active" id="tabCompiled" role="tabpanel" aria-labelledby="tabBtnCompiled">
                 <div class="output-box-wrapper">
-                    <div class="output-box" id="outputPrompt" contenteditable="true" spellcheck="false">Ingresa tu idea en el panel de la izquierda para comenzar a compilar el prompt...</div>
+                    <div class="output-box" id="outputPrompt" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Prompt compilado" data-i18n="output_placeholder" data-i18n-aria-label="output_aria_label">Ingresa tu idea en el panel de la izquierda para comenzar a compilar el prompt...</div>
                     <div class="btn-copy-deck">
-                        <button class="btn-action" title="Copiar Prompt" id="copyBtn">📋</button>
-                        <button class="btn-action" title="Descargar como Markdown" id="downloadBtn">💾</button>
-                        <button class="btn-action" title="Guardar en historial" id="saveHistoryBtn">⭐</button>
+                        <button class="btn-action" title="Copiar Prompt" id="copyBtn" data-i18n-title="action_copy_title">📋</button>
+                        <button class="btn-action" title="Descargar como Markdown" id="downloadBtn" data-i18n-title="action_download_title">💾</button>
+                        <button class="btn-action" title="Guardar en historial" id="saveHistoryBtn" data-i18n-title="action_save_history_title">⭐</button>
+                        <button class="btn-action" title="Copiar link para compartir esta configuración" id="shareLinkBtn" data-i18n-title="action_share_title">🔗</button>
                     </div>
-                    <div class="tooltip" id="copyTooltip">¡Copiado con éxito!</div>
+                    <div class="tooltip" id="copyTooltip" data-i18n="copy_tooltip">¡Copiado con éxito!</div>
                 </div>
             </div>
 
             <!-- Tab 2: Live AI chat assistant with Gemini -->
-            <div class="tab-content" id="tabAiChat">
+            <div class="tab-content" id="tabAiChat" role="tabpanel" aria-labelledby="chatTabBtn">
                 <div class="ai-console">
-                    <div class="ai-messages" id="chatMessages">
-                        <div class="ai-message system">
-                            ¡Hola! Has activado el motor <strong>Live AI Generator (V4)</strong>. He pre-cargado las instrucciones maestras del Arquitecto Senior. Escríbeme abajo y co-crearemos paso a paso el prompt interactivo perfecto.
+                    <div class="ai-messages" id="chatMessages" aria-live="polite">
+                        <div class="ai-message system" data-i18n="chat_system_intro">
+                            ¡Hola! Has activado el motor <strong>Live AI Generator (V1)</strong>. He pre-cargado las instrucciones maestras del Arquitecto Senior. Escríbeme abajo y co-crearemos paso a paso el prompt interactivo perfecto.
                         </div>
                     </div>
                     <div class="ai-chat-input-wrapper">
-                        <input type="text" class="ai-chat-input" id="chatInput" placeholder="Escribe aquí para chatear con Monster Prompt V4...">
-                        <button class="btn-send-chat" id="sendChatBtn">Enviar</button>
+                        <input type="text" class="ai-chat-input" id="chatInput" placeholder="Escribe aquí para chatear con NOVA Prompt V1..." data-i18n-placeholder="chat_input_placeholder">
+                        <button class="btn-action" id="resetChatBtn" title="Reiniciar conversación" data-i18n-title="reset_chat_title">🗑</button>
+                        <button class="btn-send-chat" id="sendChatBtn" data-i18n="chat_send_btn">Enviar</button>
                     </div>
                 </div>
             </div>
 
             <!-- Tab 3: Local prompt history -->
-            <div class="tab-content" id="tabHistory">
+            <div class="tab-content" id="tabHistory" role="tabpanel" aria-labelledby="historyTabBtn">
+                <div class="template-save-row">
+                    <button class="btn-action" id="exportHistoryBtn" data-i18n="history_export_btn">⬇️ Exportar Historial (JSON)</button>
+                    <button class="btn-action" id="importHistoryBtn" data-i18n="history_import_btn">⬆️ Importar Historial (JSON)</button>
+                    <input type="file" id="importHistoryInput" accept="application/json" style="display:none;">
+                </div>
                 <div class="history-list" id="historyList">
-                    <div class="history-empty">Aún no has guardado ningún prompt. Usa el botón ⭐ del prompt compilado para guardarlo aquí.</div>
+                    <div class="history-empty" data-i18n="history_empty">Aún no has guardado ningún prompt. Usa el botón ⭐ del prompt compilado para guardarlo aquí.</div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Saved configuration templates (idea + full workspace state) -->
+            <div class="tab-content" id="tabTemplates" role="tabpanel" aria-labelledby="templatesTabBtn">
+                <div class="template-save-row">
+                    <input type="text" class="api-input" id="templateNameInput" placeholder="Nombre de la plantilla (ej. Producto e-commerce)" data-i18n-placeholder="template_name_placeholder" aria-label="Nombre de la plantilla" data-i18n-aria-label="template_name_placeholder">
+                    <button class="btn-action" id="saveTemplateBtn" data-i18n="template_save_btn">💾 Guardar Plantilla Actual</button>
+                </div>
+                <div class="history-list" id="templatesList">
+                    <div class="history-empty" data-i18n="templates_empty">Aún no has guardado ninguna plantilla. Configura tu workspace y usa el botón de arriba para guardarlo como plantilla reutilizable.</div>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        Monster Prompt Studio V4 • Diseñado con ❤️ para la comunidad de <strong>NextGen IA</strong> • Software de libre distribución.
+    <footer data-i18n="footer_text">
+        NOVA Prompt V1 Studio • Diseñado con ❤️ para la comunidad de <strong>NextGen IA</strong> • Software de libre distribución.
     </footer>
 
     <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
+    <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
