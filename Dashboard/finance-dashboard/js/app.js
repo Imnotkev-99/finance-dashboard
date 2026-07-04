@@ -555,6 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderKpis();
     renderChart();
     updateBudgetUI();
+    renderInsights();
 
     // Si la pestaña activa es la de categorías, refrescar el gráfico de dona
     const activeTab = document.querySelector('.chart-tab.active');
@@ -626,6 +627,71 @@ document.addEventListener('DOMContentLoaded', () => {
       pctLabel.innerText = `${pct.toFixed(0)}% consumido`;
       remLabel.innerText = `${formatMoney(remaining)} restante`;
     }
+  }
+
+  function renderInsights() {
+    if (!summary) return;
+
+    // 1) Consumo Mensual
+    const monthlyTotal = sumFor(summary.monthly);
+    const monthlyTotalEl = document.getElementById('insight-monthly-total');
+    if (monthlyTotalEl) monthlyTotalEl.innerText = formatMoney(monthlyTotal);
+
+    // 2) Categoría Principal (Top Category)
+    const categoryRows = (summary?.by_category || []).filter((row) => row.currency === activeCurrency);
+    let topCategory = 'Ninguna';
+    let maxCategoryAmt = 0;
+    categoryRows.forEach((row) => {
+      const amt = parseFloat(row.total) || 0;
+      if (amt > maxCategoryAmt) {
+        maxCategoryAmt = amt;
+        topCategory = row.category || 'Otros';
+      }
+    });
+    const topCategoryEl = document.getElementById('insight-top-category');
+    if (topCategoryEl) {
+      if (maxCategoryAmt > 0) {
+        const catEmoji = categoryEmojis[topCategory] || '🏷️';
+        topCategoryEl.innerText = `${catEmoji} ${topCategory} (${formatMoney(maxCategoryAmt)})`;
+      } else {
+        topCategoryEl.innerText = 'Ninguna';
+      }
+    }
+
+    // 3) Día Pico de Gasto
+    const dateRows = (summary?.by_date || []).filter((row) => row.currency === activeCurrency);
+    let peakDay = '-';
+    let maxDayAmt = 0;
+    dateRows.forEach((row) => {
+      const amt = parseFloat(row.total) || 0;
+      if (amt > maxDayAmt) {
+        maxDayAmt = amt;
+        peakDay = row.date;
+      }
+    });
+    const peakDayEl = document.getElementById('insight-peak-day');
+    if (peakDayEl) {
+      if (maxDayAmt > 0 && peakDay !== '-') {
+        const parts = peakDay.split('-');
+        if (parts.length === 3) {
+          const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          const day = parseInt(parts[2], 10);
+          const monthIndex = parseInt(parts[1], 10) - 1;
+          const monthName = months[monthIndex] || '';
+          peakDayEl.innerText = `${day} de ${monthName} (${formatMoney(maxDayAmt)})`;
+        } else {
+          peakDayEl.innerText = `${peakDay} (${formatMoney(maxDayAmt)})`;
+        }
+      } else {
+        peakDayEl.innerText = '-';
+      }
+    }
+
+    // 4) Promedio Diario
+    const elapsedDays = Math.max(new Date().getDate(), 1);
+    const dailyAverage = monthlyTotal / elapsedDays;
+    const dailyAverageEl = document.getElementById('insight-daily-average');
+    if (dailyAverageEl) dailyAverageEl.innerText = formatMoney(dailyAverage);
   }
 
   // Selector de moneda de los indicadores (segmented control, persistido)
@@ -1222,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         animation: reduce ? false : { duration: 1100, easing: 'easeOutQuart' },
         interaction: { intersect: false, mode: 'index' },
         plugins: {

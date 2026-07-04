@@ -279,9 +279,60 @@
               <button class="chart-tab" data-tab="categories" role="tab" aria-selected="false">🍩 Categorías</button>
             </div>
           </div>
-          <div class="chart-container">
-            <canvas id="expenseChart"></canvas>
-            <canvas id="categoryChart" class="hidden"></canvas>
+          <div class="chart-layout">
+            <div class="chart-main">
+              <canvas id="expenseChart"></canvas>
+              <canvas id="categoryChart" class="hidden"></canvas>
+            </div>
+            <div class="chart-insights" id="chart-insights">
+              <div class="insight-item insight-item--monthly">
+                <div class="insight-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <line x1="2" y1="10" x2="22" y2="10" />
+                  </svg>
+                </div>
+                <div class="insight-content">
+                  <span class="insight-label">Consumo Mensual</span>
+                  <span class="insight-value" id="insight-monthly-total">$0.00</span>
+                </div>
+              </div>
+              <div class="insight-item insight-item--category">
+                <div class="insight-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                </div>
+                <div class="insight-content">
+                  <span class="insight-label">Categoría Principal</span>
+                  <span class="insight-value" id="insight-top-category">Ninguna</span>
+                </div>
+              </div>
+              <div class="insight-item insight-item--peak">
+                <div class="insight-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3z" />
+                  </svg>
+                </div>
+                <div class="insight-content">
+                  <span class="insight-label">Día Pico de Gasto</span>
+                  <span class="insight-value" id="insight-peak-day">-</span>
+                </div>
+              </div>
+              <div class="insight-item insight-item--average">
+                <div class="insight-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div class="insight-content">
+                  <span class="insight-label">Promedio Diario</span>
+                  <span class="insight-value" id="insight-daily-average">$0.00</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
