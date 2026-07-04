@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "monster-prompt-studio",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4859", "--directory", "monster-prompt-studio"],
+      "port": 4859
+    }
+  ]
+}
