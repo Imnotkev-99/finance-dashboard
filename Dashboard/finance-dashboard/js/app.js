@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportPdfBtn = document.getElementById('export-pdf-btn');
   const newGoalBtn = document.getElementById('new-goal-btn');
   const currencySwitchBtns = document.querySelectorAll('.currency-switch__btn');
+  const languageSwitchBtns = document.querySelectorAll('.language-switch__btn');
 
   // ============================================================
   //  NOTIFICACIONES IN-PAGE (reemplazan alert())
@@ -330,13 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Registro
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        showToast('Registro exitoso. Si Supabase requiere confirmación, revisa tu correo. Si no, ya puedes iniciar sesión.', 'success');
+        showToast(window.APEX.i18n.translate('toast_auth_success'), 'success');
         isLoginMode = false;
         // Simular click para volver al login con la animación
         toggleAuthBtn.click();
       }
     } catch (error) {
-      showToast('Error de autenticación: ' + error.message, 'error');
+      showToast(window.APEX.i18n.translate('toast_auth_error') + error.message, 'error');
     } finally {
       authSubmitBtn.disabled = false;
       authSubmitBtn.textContent = isLoginMode ? 'Entrar' : 'Registrarse';
@@ -370,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Red de seguridad: si no redirigió en unos segundos, reactiva.
         setTimeout(resetGoogleBtn, 5000);
       } catch (error) {
-        showToast('Error al entrar con Google: ' + error.message, 'error');
+        showToast(window.APEX.i18n.translate('toast_google_error') + error.message, 'error');
         resetGoogleBtn();
       }
     });
@@ -636,8 +637,8 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.classList.add('warning');
       }
 
-      pctLabel.innerText = `${pct.toFixed(0)}% consumido`;
-      remLabel.innerText = `${formatMoney(remaining)} restante`;
+      pctLabel.innerText = `${pct.toFixed(0)}% ${window.APEX.i18n.translate('kpi_consumed')}`;
+      remLabel.innerText = `${formatMoney(remaining)} ${window.APEX.i18n.translate('kpi_remaining')}`;
     }
 
     // Renderizar categorías y metas asociadas
@@ -655,7 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2) Categoría Principal (Top Category)
     const categoryRows = (summary?.by_category || []).filter((row) => row.currency === activeCurrency);
-    let topCategory = 'Ninguna';
+    const noneText = window.APEX.i18n.translate('insight_none');
+    let topCategory = noneText;
     let maxCategoryAmt = 0;
     categoryRows.forEach((row) => {
       const amt = parseFloat(row.total) || 0;
@@ -668,9 +670,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (topCategoryEl) {
       if (maxCategoryAmt > 0) {
         const catEmoji = categoryEmojis[topCategory] || '🏷️';
-        topCategoryEl.innerText = `${catEmoji} ${topCategory} (${formatMoney(maxCategoryAmt)})`;
+        // Traducir nombre de categoría si existe en la traducción
+        const translatedCat = window.APEX.i18n.translate(`cat_${topCategory}`) || topCategory;
+        topCategoryEl.innerText = `${catEmoji} ${translatedCat} (${formatMoney(maxCategoryAmt)})`;
       } else {
-        topCategoryEl.innerText = 'Ninguna';
+        topCategoryEl.innerText = noneText;
       }
     }
 
@@ -690,11 +694,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (maxDayAmt > 0 && peakDay !== '-') {
         const parts = peakDay.split('-');
         if (parts.length === 3) {
-          const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          const lang = window.APEX.i18n.getCurrentLanguage();
+          const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const months = lang === 'en' ? monthsEn : monthsEs;
           const day = parseInt(parts[2], 10);
           const monthIndex = parseInt(parts[1], 10) - 1;
           const monthName = months[monthIndex] || '';
-          peakDayEl.innerText = `${day} de ${monthName} (${formatMoney(maxDayAmt)})`;
+          if (lang === 'en') {
+            peakDayEl.innerText = `${monthName} ${day} (${formatMoney(maxDayAmt)})`;
+          } else {
+            peakDayEl.innerText = `${day} de ${monthName} (${formatMoney(maxDayAmt)})`;
+          }
         } else {
           peakDayEl.innerText = `${peakDay} (${formatMoney(maxDayAmt)})`;
         }
@@ -727,6 +738,24 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => setActiveCurrency(btn.getAttribute('data-currency')));
   });
   setActiveCurrency(activeCurrency, { persist: false });
+
+  // Selector de idioma (segmented control, persistido)
+  function setActiveLanguage(lang) {
+    window.APEX.i18n.setLanguage(lang);
+    languageSwitchBtns.forEach((btn) => {
+      const isActive = btn.getAttribute('data-lang') === lang;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+    // Forzar actualización de textos dinámicos
+    if (summary) applySummary();
+    else updateBudgetUI();
+  }
+
+  languageSwitchBtns.forEach((btn) => {
+    btn.addEventListener('click', () => setActiveLanguage(btn.getAttribute('data-lang')));
+  });
+  setActiveLanguage(window.APEX.i18n.getCurrentLanguage());
 
   // ============================================================
   //  TABLA: consulta con filtros + paginación de servidor
@@ -920,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
   exportCsvBtn.addEventListener('click', async () => {
     const originalLabel = exportCsvBtn.innerHTML;
     exportCsvBtn.disabled = true;
-    exportCsvBtn.textContent = 'Exportando…';
+    exportCsvBtn.textContent = window.APEX.i18n.translate('exporting');
 
     try {
       const rows = [];
@@ -932,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!rows.length) {
-        showToast('No hay gastos que exportar con los filtros actuales.', 'info');
+        showToast(window.APEX.i18n.translate('toast_no_expenses_export'), 'info');
         return;
       }
 
@@ -955,10 +984,10 @@ document.addEventListener('DOMContentLoaded', () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      showToast(`Exportados ${rows.length} gastos a CSV.`, 'success');
+      showToast(window.APEX.i18n.translate('toast_exported_csv', { count: rows.length }), 'success');
     } catch (error) {
       console.error('Error exportando CSV:', error);
-      showToast('Fallo al exportar: ' + error.message, 'error');
+      showToast(window.APEX.i18n.translate('toast_export_error') + error.message, 'error');
     } finally {
       exportCsvBtn.disabled = false;
       exportCsvBtn.innerHTML = originalLabel;
@@ -1062,13 +1091,13 @@ document.addEventListener('DOMContentLoaded', () => {
       initDateAndTime();
 
       await Promise.all([fetchSummary(), fetchExpensesPage({ reset: true, silent: true })]);
-      showToast('Gasto registrado.', 'success');
+      showToast(window.APEX.i18n.translate('toast_expense_registered'), 'success');
 
     } catch (error) {
       console.error('Error procesando el gasto:', error);
-      showToast('Fallo al guardar: ' + error.message, 'error');
+      showToast(window.APEX.i18n.translate('toast_save_error') + error.message, 'error');
     } finally {
-      submitBtn.textContent = 'Guardar Registro';
+      submitBtn.textContent = window.APEX.i18n.translate('form_save_btn');
       submitBtn.disabled = false;
       submitBtn.style.opacity = '1';
     }
@@ -1112,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const saveBtn = document.getElementById('edit-save-btn');
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Guardando…';
+    saveBtn.textContent = window.APEX.i18n.translate('saving');
 
     try {
       const { data, error } = await supabase
@@ -1129,13 +1158,13 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchSummary();
 
       closeActiveModal();
-      showToast('Gasto actualizado.', 'success');
+      showToast(window.APEX.i18n.translate('toast_expense_updated'), 'success');
     } catch (error) {
       console.error('Error actualizando el gasto:', error);
-      showToast('Fallo al actualizar: ' + error.message, 'error');
+      showToast(window.APEX.i18n.translate('toast_expense_update_error') + error.message, 'error');
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Guardar Cambios';
+      saveBtn.textContent = window.APEX.i18n.translate('save_changes');
       editingId = null;
     }
   });
@@ -1525,18 +1554,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
       const isWarning = pct >= 80;
 
+      const translatedCat = window.APEX.i18n.translate(`cat_${cat}`) || cat;
       const itemHtml = `
         <div class="category-budget-item">
           <div class="category-budget-header">
-            <span>${categoryEmojis[cat] || '🏷️'} ${cat}</span>
+            <span>${categoryEmojis[cat] || '🏷️'} ${translatedCat}</span>
             <span>${symbol}${spent.toFixed(2)} / ${symbol}${limit.toFixed(2)}</span>
           </div>
           <div class="category-budget-bar">
             <div class="category-budget-progress ${isWarning ? 'warning' : ''}" style="width: ${pct}%"></div>
           </div>
           <div class="category-budget-text">
-            <span>${pct.toFixed(0)}% consumido</span>
-            <span>${symbol}${Math.max(limit - spent, 0).toFixed(2)} restante</span>
+            <span>${pct.toFixed(0)}% ${window.APEX.i18n.translate('kpi_consumed')}</span>
+            <span>${symbol}${Math.max(limit - spent, 0).toFixed(2)} ${window.APEX.i18n.translate('kpi_remaining')}</span>
           </div>
         </div>
       `;
@@ -1544,9 +1574,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (!hasAnyBudget) {
+      const emptyText = window.APEX.i18n.translate('limits_empty_currency', { currency: CURRENCIES[activeCurrency].label });
       listEl.innerHTML = `
         <p style="color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px;">
-          No has configurado límites por categoría para <strong>${CURRENCIES[activeCurrency].label}</strong>.
+          ${emptyText}
         </p>
       `;
     }
@@ -1561,9 +1592,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const symbol = CURRENCIES[activeCurrency].symbol;
 
     if (activeGoals.length === 0) {
+      const emptyText = window.APEX.i18n.translate('goals_empty_currency', { currency: CURRENCIES[activeCurrency].label });
       listEl.innerHTML = `
         <p style="color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px;">
-          No tienes metas de ahorro en <strong>${CURRENCIES[activeCurrency].label}</strong>. ¡Crea una para comenzar!
+          ${emptyText}
         </p>
       `;
       return;
@@ -1576,20 +1608,20 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="savings-goal-header">
             <div class="savings-goal-title">${escapeHtml(goal.name)}</div>
             <div class="savings-goal-actions">
-              <button type="button" class="savings-goal-btn contrib-btn" title="Abonar ahorro" data-id="${goal.id}">💰</button>
-              <button type="button" class="savings-goal-btn edit-goal-btn" title="Editar meta" data-id="${goal.id}">✏️</button>
-              <button type="button" class="savings-goal-btn delete-goal-btn" title="Eliminar meta" data-id="${goal.id}">🗑️</button>
+              <button type="button" class="savings-goal-btn contrib-btn" title="${window.APEX.i18n.translate('modal_contrib_title')}" data-id="${goal.id}">💰</button>
+              <button type="button" class="savings-goal-btn edit-goal-btn" title="${window.APEX.i18n.translate('modal_goal_title_edit')}" data-id="${goal.id}">✏️</button>
+              <button type="button" class="savings-goal-btn delete-goal-btn" title="${window.APEX.i18n.translate('toast_goal_delete')}" data-id="${goal.id}">🗑️</button>
             </div>
           </div>
           <div class="savings-goal-amounts">
-            <div>Ahorrado: <span class="saved">${symbol}${goal.saved.toFixed(2)}</span></div>
-            <div>Objetivo: ${symbol}${goal.target.toFixed(2)}</div>
+            <div>${window.APEX.i18n.translate('goals_saved')} <span class="saved">${symbol}${goal.saved.toFixed(2)}</span></div>
+            <div>${window.APEX.i18n.translate('goals_target')} ${symbol}${goal.target.toFixed(2)}</div>
           </div>
           <div class="savings-goal-bar">
             <div class="savings-goal-progress" style="width: ${pct}%"></div>
           </div>
           <div style="font-size: 11px; color: var(--text-faint); margin-top: -4px;">
-            ${pct.toFixed(0)}% completado
+            ${pct.toFixed(0)}% ${window.APEX.i18n.translate('goals_completed')}
           </div>
         </div>
       `;
@@ -1620,7 +1652,7 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('savings-target').value = goal.target;
           document.getElementById('savings-currency').value = goal.currency;
           document.getElementById('savings-saved').value = goal.saved;
-          document.getElementById('savings-modal-title').textContent = 'Editar Meta de Ahorro';
+          document.getElementById('savings-modal-title').textContent = window.APEX.i18n.translate('modal_goal_title_edit');
           openModal(savingsModal);
         }
       });
@@ -1631,12 +1663,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = e.currentTarget.getAttribute('data-id');
         const goal = savingsGoals.find(g => g.id === id);
         if (goal) {
-          const yes = await confirmDialog(`¿Estás seguro de que deseas eliminar la meta "${goal.name}"?`);
+          const yes = await confirmDialog(window.APEX.i18n.translate('confirm_delete_goal', { name: goal.name }));
           if (yes) {
             savingsGoals = savingsGoals.filter(g => g.id !== id);
             saveSavingsGoals();
             renderSavingsGoalsUI();
-            showToast('Meta de ahorro eliminada.', 'success');
+            showToast(window.APEX.i18n.translate('toast_goal_delete'), 'success');
           }
         }
       });
@@ -1669,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const saveBtn = document.getElementById('budget-save-btn');
       saveBtn.disabled = true;
-      saveBtn.innerText = 'Guardando...';
+      saveBtn.innerText = window.APEX.i18n.translate('saving');
 
       // Capturar y actualizar los presupuestos de categoría locales
       const activeCatBudgets = categoryBudgets[activeCurrency] || {};
@@ -1706,13 +1738,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         closeActiveModal();
         updateBudgetUI();
-        showToast('Presupuestos actualizados con éxito.', 'success');
+        showToast(window.APEX.i18n.translate('toast_budget_success'), 'success');
       } catch (err) {
         console.error('Error saving budgets:', err);
-        showToast('Fallo al guardar límites: ' + err.message, 'error');
+        showToast(window.APEX.i18n.translate('toast_budget_error') + err.message, 'error');
       } finally {
         saveBtn.disabled = false;
-        saveBtn.innerText = 'Guardar Límites';
+        saveBtn.innerText = window.APEX.i18n.translate('modal_budget_save');
       }
     });
   }
@@ -1725,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('savings-target').value = '';
       document.getElementById('savings-currency').value = activeCurrency;
       document.getElementById('savings-saved').value = '0';
-      document.getElementById('savings-modal-title').textContent = 'Nueva Meta de Ahorro';
+      document.getElementById('savings-modal-title').textContent = window.APEX.i18n.translate('modal_goal_title_new');
       openModal(savingsModal);
     });
 
@@ -1761,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saveSavingsGoals();
       closeActiveModal();
       renderSavingsGoalsUI();
-      showToast(id ? 'Meta de ahorro modificada.' : 'Meta de ahorro creada con éxito.', 'success');
+      showToast(id ? window.APEX.i18n.translate('toast_goal_edit') : window.APEX.i18n.translate('toast_goal_create'), 'success');
     });
   }
 
@@ -1777,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSavingsGoals();
         closeActiveModal();
         renderSavingsGoalsUI();
-        showToast(`Abono registrado con éxito. ¡Sigue así!`, 'success');
+        showToast(window.APEX.i18n.translate('toast_contrib_success'), 'success');
       }
     });
   }

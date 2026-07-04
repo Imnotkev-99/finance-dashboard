@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora — Demo de coordinación de equipo</title>
+  <!-- Tailwind vía CDN: sin build, abrir con doble clic -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!--
+    Lógica aritmética pura extraída a calculator.js.
+    Se carga como <script> CLÁSICO (no type="module") a propósito:
+    los módulos ES están sujetos a CORS cuando el HTML se abre vía
+    file:// (doble clic), lo que rompería el demo. Un script clásico
+    no tiene esa restricción y expone window.Calc de forma síncrona
+    antes de que corra el bloque de abajo.
+  -->
+  <script src="calculator.js"></script>
+</head>
+<body class="bg-slate-950 min-h-screen flex items-center justify-center p-4 antialiased">
+
+  <!-- ===================== CALCULADORA ===================== -->
+  <main
+    class="w-full max-w-xs bg-slate-900 rounded-3xl p-5 shadow-2xl select-none"
+    aria-label="Calculadora"
+  >
+    <!-- Display: expresión pequeña (gris) + resultado grande -->
+    <section class="bg-slate-800 rounded-2xl px-4 py-5 mb-5 text-right overflow-hidden">
+      <!-- Línea pequeña: expresión pendiente -->
+      <div
+        id="expression"
+        class="text-slate-400 text-sm h-5 truncate tabular-nums"
+        aria-hidden="true"
+      >&nbsp;</div>
+      <!-- Línea grande: resultado actual (lectura por lector de pantalla) -->
+      <div
+        id="result"
+        role="status"
+        aria-live="polite"
+        class="text-white text-4xl font-semibold mt-1 truncate tabular-nums"
+      >0</div>
+    </section>
+
+    <!-- Teclado: grid plano de 4 columnas -->
+    <div class="grid grid-cols-4 gap-3">
+      <!-- Fila 1 -->
+      <button data-action="clear" aria-label="Borrar todo"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-rose-600 text-white hover:bg-rose-500 active:scale-95 active:bg-rose-700">AC</button>
+      <button data-action="delete" aria-label="Borrar último carácter"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-600 text-white hover:bg-slate-500 active:scale-95 active:bg-slate-700">⌫</button>
+      <button data-action="operator" data-value="/" aria-label="Dividir"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-600 text-white hover:bg-slate-500 active:scale-95 active:bg-slate-700">÷</button>
+      <button data-action="operator" data-value="*" aria-label="Multiplicar"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-600 text-white hover:bg-slate-500 active:scale-95 active:bg-slate-700">×</button>
+
+      <!-- Fila 2 -->
+      <button data-action="digit" data-value="7"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">7</button>
+      <button data-action="digit" data-value="8"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">8</button>
+      <button data-action="digit" data-value="9"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">9</button>
+      <button data-action="operator" data-value="-" aria-label="Restar"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-600 text-white hover:bg-slate-500 active:scale-95 active:bg-slate-700">−</button>
+
+      <!-- Fila 3 -->
+      <button data-action="digit" data-value="4"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">4</button>
+      <button data-action="digit" data-value="5"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">5</button>
+      <button data-action="digit" data-value="6"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">6</button>
+      <button data-action="operator" data-value="+" aria-label="Sumar"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-600 text-white hover:bg-slate-500 active:scale-95 active:bg-slate-700">+</button>
+
+      <!-- Fila 4 -->
+      <button data-action="digit" data-value="1"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">1</button>
+      <button data-action="digit" data-value="2"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">2</button>
+      <button data-action="digit" data-value="3"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">3</button>
+      <button data-action="equals" aria-label="Igual"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-orange-500 text-white hover:bg-orange-400 active:scale-95 active:bg-orange-600">=</button>
+
+      <!-- Fila 5 -->
+      <button data-action="digit" data-value="0"
+        class="col-span-3 rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800 tabular-nums">0</button>
+      <button data-action="decimal" aria-label="Punto decimal"
+        class="aspect-square rounded-xl text-xl font-medium transition-all duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 bg-slate-700 text-white hover:bg-slate-600 active:scale-95 active:bg-slate-800">.</button>
+    </div>
+  </main>
+
+  <!-- ===================== LÓGICA (máquina de estados) ===================== -->
+  <script>
+  (function () {
+    "use strict";
+
+    // ----- Lógica aritmética pura (delegada a calculator.js) -----
+    // evaluate()/formatResult() viven en calculator.js para ser testeables
+    // con `node --test` y reutilizables fuera del navegador. Aquí solo
+    // queda la máquina de estados de la UI.
+    const { evaluate, formatResult, MAX_DISPLAY } = window.Calc;
+    const SYMBOLS = { "+": "+", "-": "−", "*": "×", "/": "÷" }; // Para pintar la expresión
+
+    // ----- Estados posibles (regla / spec ux-logic-architect) -----
+    const STATE = {
+      IDLE_EMPTY: "idle_empty",
+      ENTERING_A: "entering_operand_a",
+      OPERATOR_SELECTED: "operator_selected",
+      ENTERING_B: "entering_operand_b",
+      RESULT_SHOWN: "result_shown",
+      ERROR: "error",
+    };
+
+    // ----- Modelo de estado interno -----
+    const model = {
+      state: STATE.IDLE_EMPTY,
+      operandA: "0",      // operando A como string (lo que se muestra cuando no hay B)
+      operandB: "",       // operando B como string mientras se edita
+      operator: null,     // "+", "-", "*", "/"
+      hasDecimal: false,  // flag de punto decimal en el operando en edición (regla 5)
+      lastOperator: null, // para repetir "=" (regla 11)
+      lastOperandB: null, // para repetir "=" (regla 11)
+    };
+
+    // ----- Referencias al DOM -----
+    const $result = document.getElementById("result");
+    const $expression = document.getElementById("expression");
+
+    // ----- Utilidades de cálculo -----
+
+    // Operando actualmente en edición según el estado.
+    function editingOperand() {
+      return model.state === STATE.ENTERING_B ? "operandB" : "operandA";
+    }
+
+    // ----- Render -----
+    function render() {
+      if (model.state === STATE.ERROR) {
+        $result.textContent = "Error";
+        $expression.textContent = " ";
+        return;
+      }
+
+      // Línea grande: operando en edición / A / B según el momento.
+      let big;
+      if (model.state === STATE.ENTERING_B) {
+        big = model.operandB || "0";
+      } else if (model.state === STATE.OPERATOR_SELECTED) {
+        big = model.operandA; // aún no hay B; mostramos A
+      } else {
+        big = model.operandA;
+      }
+      $result.textContent = big;
+
+      // Línea pequeña: expresión pendiente "A op".
+      if (model.operator && model.state !== STATE.RESULT_SHOWN) {
+        $expression.textContent = model.operandA + " " + SYMBOLS[model.operator];
+      } else if (model.state === STATE.RESULT_SHOWN && model.lastOperator) {
+        // Tras "=", mostramos la operación completa que produjo el resultado.
+        $expression.textContent =
+          model.operandA + " "; // discreto; el resultado ya está abajo
+      } else {
+        $expression.textContent = " ";
+      }
+    }
+
+    // Pasa a estado de error y refresca.
+    function toError() {
+      model.state = STATE.ERROR;
+      render();
+    }
+
+    // ----- Manejadores de acciones -----
+
+    // Inserta un dígito respetando el límite y la transición de estados.
+    function inputDigit(d) {
+      if (model.state === STATE.ERROR) return; // solo AC sale de error (regla 10)
+
+      // Tras un resultado, escribir dígito empieza un cálculo nuevo (operand_a).
+      if (model.state === STATE.RESULT_SHOWN) {
+        resetSoft();
+        model.operandA = d === "0" ? "0" : d;
+        model.state = STATE.ENTERING_A;
+        render();
+        return;
+      }
+
+      // Tras elegir operador, el dígito comienza operand_b.
+      if (model.state === STATE.OPERATOR_SELECTED) {
+        model.state = STATE.ENTERING_B;
+        model.operandB = "";
+        model.hasDecimal = false;
+      }
+
+      // Estado inicial: el primer dígito es operand_a.
+      if (model.state === STATE.IDLE_EMPTY) {
+        model.state = STATE.ENTERING_A;
+        model.operandA = "0";
+      }
+
+      const key = editingOperand();
+      let current = model[key];
+
+      // Reemplazar el "0" inicial salvo que se escriba otro "0".
+      if (current === "0") current = "";
+
+      if (current.length >= MAX_DISPLAY) return; // límite (regla 6)
+
+      model[key] = current + d;
+      render();
+    }
+
+    // Inserta el punto decimal (regla 5: bloqueado si ya hay uno).
+    function inputDecimal() {
+      if (model.state === STATE.ERROR) return;
+
+      // Tras resultado, "." inicia un nuevo operando A "0.".
+      if (model.state === STATE.RESULT_SHOWN) {
+        resetSoft();
+        model.operandA = "0.";
+        model.hasDecimal = true;
+        model.state = STATE.ENTERING_A;
+        render();
+        return;
+      }
+
+      if (model.state === STATE.OPERATOR_SELECTED) {
+        model.state = STATE.ENTERING_B;
+        model.operandB = "0";
+        model.hasDecimal = false;
+      }
+
+      if (model.state === STATE.IDLE_EMPTY) {
+        model.state = STATE.ENTERING_A;
+        model.operandA = "0";
+      }
+
+      if (model.hasDecimal) return; // no-op si ya hay punto (regla 5)
+
+      const key = editingOperand();
+      if (model[key].length + 1 > MAX_DISPLAY) return; // respeta límite
+      if (model[key] === "") model[key] = "0";
+      model[key] += ".";
+      model.hasDecimal = true;
+      render();
+    }
+
+    // Selecciona un operador, gestionando encadenamientos (reglas 1, 3, 4).
+    function inputOperator(op) {
+      if (model.state === STATE.ERROR) return;
+
+      // Operador justo tras resultado: el resultado pasa a ser A (regla 1).
+      if (model.state === STATE.RESULT_SHOWN) {
+        model.operator = op;
+        model.operandB = "";
+        model.hasDecimal = false;
+        model.state = STATE.OPERATOR_SELECTED;
+        render();
+        return;
+      }
+
+      // Idle: tratamos A=0 y fijamos operador.
+      if (model.state === STATE.IDLE_EMPTY || model.state === STATE.ENTERING_A) {
+        model.operator = op;
+        model.hasDecimal = false;
+        model.state = STATE.OPERATOR_SELECTED;
+        render();
+        return;
+      }
+
+      // Ya había operador pero no se escribió B: reemplazar operador (regla 3).
+      if (model.state === STATE.OPERATOR_SELECTED) {
+        model.operator = op;
+        render();
+        return;
+      }
+
+      // Encadenar con B ya escrito: evaluar lo pendiente y seguir (regla 4).
+      if (model.state === STATE.ENTERING_B) {
+        const raw = evaluate(model.operandA, model.operator, model.operandB);
+        const formatted = formatResult(raw);
+        if (formatted === null) { toError(); return; }
+        model.operandA = formatted;
+        model.operator = op;
+        model.operandB = "";
+        model.hasDecimal = false;
+        model.state = STATE.OPERATOR_SELECTED;
+        render();
+        return;
+      }
+    }
+
+    // Ejecuta "=" (reglas 2, 8, 11).
+    function inputEquals() {
+      if (model.state === STATE.ERROR) return;
+
+      // "=" sin operador es no-op (regla 2)... salvo repetir "=" (regla 11).
+      if (model.state === STATE.RESULT_SHOWN) {
+        if (model.lastOperator === null) return;
+        const raw = evaluate(model.operandA, model.lastOperator, model.lastOperandB);
+        const formatted = formatResult(raw);
+        if (formatted === null) { toError(); return; }
+        model.operandA = formatted;
+        model.state = STATE.RESULT_SHOWN;
+        render();
+        return;
+      }
+
+      // Sin operador definido todavía: no-op (regla 2).
+      if (model.operator === null) return;
+
+      // Operador elegido pero sin B: usar A como B (ej. "5 +" "=" -> 10).
+      let bValue = model.operandB;
+      if (model.state === STATE.OPERATOR_SELECTED || model.operandB === "") {
+        bValue = model.operandA;
+      }
+
+      const raw = evaluate(model.operandA, model.operator, bValue);
+      const formatted = formatResult(raw);
+      if (formatted === null) { toError(); return; } // div/0 u overflow (reglas 7, 8)
+
+      // Guardamos para poder repetir "=" (regla 11).
+      model.lastOperator = model.operator;
+      model.lastOperandB = bValue;
+
+      model.operandA = formatted;
+      model.operandB = "";
+      model.operator = null;
+      model.hasDecimal = false;
+      model.state = STATE.RESULT_SHOWN;
+      render();
+    }
+
+    // ⌫: borra el último carácter del operando en edición (regla 9).
+    function inputDelete() {
+      // No-op en result_shown y error (regla 9).
+      if (model.state === STATE.RESULT_SHOWN || model.state === STATE.ERROR) return;
+
+      // Si acabamos de elegir operador, ⌫ deshace el operador.
+      if (model.state === STATE.OPERATOR_SELECTED) {
+        model.operator = null;
+        model.state = model.operandA === "0" ? STATE.IDLE_EMPTY : STATE.ENTERING_A;
+        render();
+        return;
+      }
+
+      const key = editingOperand();
+      let current = model[key];
+      if (current.endsWith(".")) model.hasDecimal = false;
+      current = current.slice(0, -1);
+
+      if (current === "" || current === "-") {
+        current = "0";
+        // Si estábamos editando B y queda vacío, volvemos a operator_selected.
+        if (key === "operandB") {
+          model.operandB = "";
+          model.state = STATE.OPERATOR_SELECTED;
+          render();
+          return;
+        }
+        model.state = STATE.IDLE_EMPTY;
+      }
+      model[key] = current;
+      render();
+    }
+
+    // Resetea solo los datos de operación (mantiene last* para "=").
+    function resetSoft() {
+      model.operandB = "";
+      model.operator = null;
+      model.hasDecimal = false;
+    }
+
+    // AC: reset total a idle_empty; única salida de error (regla 10).
+    function clearAll() {
+      model.state = STATE.IDLE_EMPTY;
+      model.operandA = "0";
+      model.operandB = "";
+      model.operator = null;
+      model.hasDecimal = false;
+      model.lastOperator = null;
+      model.lastOperandB = null;
+      render();
+    }
+
+    // ----- Dispatcher central por data-action -----
+    function dispatch(action, value) {
+      switch (action) {
+        case "digit": inputDigit(value); break;
+        case "decimal": inputDecimal(); break;
+        case "operator": inputOperator(value); break;
+        case "equals": inputEquals(); break;
+        case "delete": inputDelete(); break;
+        case "clear": clearAll(); break;
+      }
+    }
+
+    // ----- Eventos de click (delegación) -----
+    document.querySelector("main").addEventListener("click", function (e) {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      dispatch(btn.dataset.action, btn.dataset.value);
+    });
+
+    // ----- Soporte de teclado -----
+    document.addEventListener("keydown", function (e) {
+      const k = e.key;
+
+      if (k >= "0" && k <= "9") { dispatch("digit", k); return; }
+      if (k === ".") { dispatch("decimal"); return; }
+      if (k === "+" || k === "-" || k === "*" || k === "/") {
+        dispatch("operator", k);
+        return;
+      }
+      if (k === "Enter" || k === "=") { e.preventDefault(); dispatch("equals"); return; }
+      if (k === "Backspace") { e.preventDefault(); dispatch("delete"); return; }
+      if (k === "Escape" || k === "c" || k === "C") { dispatch("clear"); return; }
+    });
+
+    // Render inicial.
+    render();
+  })();
+  </script>
+</body>
+</html>

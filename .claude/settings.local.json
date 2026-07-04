@@ -4,7 +4,8 @@
       "Bash(pkill -f \"remotion studio\")",
       "Bash(pkill -f \"remotion-studio\")",
       "Bash(rm -rf ~/.claude/skills/remotion-best-practices)",
-      "Read(//Users/kevinsantos/.claude/skills/**)"
+      "Read(//Users/kevinsantos/.claude/skills/**)",
+      "Bash(mkdir -p /Users/kevinsantos/claudeproject/monster-prompt-studio/css /Users/kevinsantos/claudeproject/monster-prompt-studio/js && cp \"/Users/kevinsantos/Downloads/RECURSOS Y REGALOS/APP MONSTER-PROMPT V4.html\" /Users/kevinsantos/claudeproject/monster-prompt-studio/original.html && ls -la /Users/kevinsantos/claudeproject/monster-prompt-studio/)"
     ]
   }
 }

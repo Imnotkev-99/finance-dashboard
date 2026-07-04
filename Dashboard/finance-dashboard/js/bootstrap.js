@@ -3,4 +3,5 @@
 // scripts inline (`script-src` sin 'unsafe-inline', ver vercel.json).
 import * as APEX from './utils.js';
 
-window.APEX = APEX;
+// Merge en vez de sobreescribir: i18n.js ya ha podido definir window.APEX.i18n.
+Object.assign(window.APEX || (window.APEX = {}), APEX);

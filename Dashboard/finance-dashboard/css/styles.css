@@ -2141,6 +2141,39 @@ td {
   right: 20px;
 }
 
+/* --- Selector de Idiomas (i18n) --- */
+.language-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.language-switch__btn {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 200ms var(--ease-out), background-color 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.language-switch__btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.language-switch__btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* ============================================================
    DISEÑO PARA IMPRESIÓN (PDF)
    ============================================================ */
