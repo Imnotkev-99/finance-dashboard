@@ -19,12 +19,8 @@
 </head>
 
 <body>
-  <!-- Fondo de video con parallax (login + dashboard) -->
-  <video id="bg-video" class="bg-video" autoplay muted loop playsinline aria-hidden="true">
-    <source
-      src="assets/video/bg-glass.mp4"
-      type="video/mp4">
-  </video>
+  <!-- Fondo de canvas 3D interactivo (login + dashboard) -->
+  <canvas id="three-canvas" class="bg-canvas" aria-hidden="true"></canvas>
   <div class="bg-video-overlay" aria-hidden="true"></div>
 
   <!-- Auth Screen -->
@@ -493,10 +489,11 @@
   <!-- Utilidades puras: el módulo es diferido y se ejecuta antes de DOMContentLoaded,
        por lo que window.APEX estará disponible cuando corra app.js.
        En archivo propio (no inline) para cumplir el CSP de vercel.json. -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js" crossorigin="anonymous"></script>
   <script type="module" src="js/bootstrap.js"></script>
   <script src="js/app.js?v=3"></script>
-  <!-- Parallax del fondo de video (mouse + scroll) -->
-  <script src="js/parallax.js"></script>
+  <!-- Fondo 3D interactivo en Three.js -->
+  <script src="js/three-bg.js"></script>
 </body>
 
 </html>
